@@ -69,6 +69,7 @@ builder.Services.AddSwaggerGen(options =>
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
+builder.WebHost.UseUrls("https://localhost:8080"); // Chanje sa ak URL ou
 
 var app = builder.Build();
 

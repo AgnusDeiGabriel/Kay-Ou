@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KayAyiti — Panèl Admin</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- ════════════════ LOGIN ════════════════ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">Kay<span>Ayiti</span></div>
+    <div class="login-sub">Panèl Administratè</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-grp">
+      <label class="form-lbl">Email Admin</label>
+      <input class="form-inp" type="email" id="l-email" value="admin@kayayiti.com" autocomplete="email">
+    </div>
+    <div class="form-grp">
+      <label class="form-lbl">Modpas</label>
+      <input class="form-inp" type="password" id="l-pass" value="Admin@123" autocomplete="current-password">
+    </div>
+    <button class="btn-login-main" id="btn-login" onclick="doAdminLogin()">Konekte kòm Admin →</button>
+  </div>
+</div>
+
+<!-- ════════════════ APP ════════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-logo-wrap">
+      <div class="sb-logo">Kay<span>Ayiti</span></div>
+      <div class="sb-sub">Panèl Admin</div>
+    </div>
+
+    <div class="sb-nav">
+      <div class="sb-section">Jeneral</div>
+      <div class="sb-item active" onclick="showPage('page-dashboard',this)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+
+      <div class="sb-section">Jesyon</div>
+      <div class="sb-item" onclick="showPage('page-houses',this)">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Kay yo
+        <span class="sb-badge" id="badge-houses">—</span>
+      </div>
+      <div class="sb-item" onclick="showPage('page-payments',this)">
+        <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Peman yo
+        <span class="sb-badge" id="badge-payments">—</span>
+      </div>
+      <div class="sb-item" onclick="showPage('page-users',this)">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Itilizatè yo
+      </div>
+    </div>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-av">AD</div>
+        <div>
+          <div class="sb-name" id="sb-name">Administratè</div>
+          <div class="sb-role" id="sb-role">admin@kayayiti.com</div>
+        </div>
+        <button class="sb-logout" onclick="doLogout()" title="Dekonekte">⏻</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- ══════ DASHBOARD ══════ -->
+    <div class="page active" id="page-dashboard">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub" id="dash-date">Ap chaje...</div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn" onclick="loadDashboard()">↺ Aktualize</button>
+          <button class="btn btn-primary" onclick="showPage('page-houses',document.querySelectorAll('.sb-item')[2])">Valide kay →</button>
+        </div>
+      </div>
+      <div class="content">
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-accent" style="background:var(--orange);"></div>
+            <div class="stat-lbl">Total Itilizatè</div>
+            <div class="stat-val" id="stat-users">—</div>
+            <div class="stat-sub text-up">Manm aktif</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-accent" style="background:var(--amber);"></div>
+            <div class="stat-lbl">Kay pou Valide</div>
+            <div class="stat-val" id="stat-pending-houses">—</div>
+            <div class="stat-sub text-warn">Tann aksyon ou</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-accent" style="background:var(--red);"></div>
+            <div class="stat-lbl">Peman pou Verifye</div>
+            <div class="stat-val" id="stat-pending-pay">—</div>
+            <div class="stat-sub text-danger">Resi pandan</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-accent" style="background:var(--green);"></div>
+            <div class="stat-lbl">Revni Verifye</div>
+            <div class="stat-val" id="stat-revenue">—</div>
+            <div class="stat-sub text-up">HTG total</div>
+          </div>
+        </div>
+
+        <!-- Two col -->
+        <div class="two-col">
+          <!-- Recent houses -->
+          <div class="card">
+            <div class="card-head">
+              <span class="card-head-title">Kay ki pou validasyon</span>
+              <span class="card-head-action" onclick="showPage('page-houses',document.querySelectorAll('.sb-item')[2])">Wè tout →</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Kay</th><th>Pwopriyetè</th><th>Pri</th><th>Statut</th><th>Aksyon</th></tr></thead>
+                <tbody id="dash-houses">
+                  <tr><td colspan="5"><div class="loader"><div class="spinner"></div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Bar chart -->
+          <div class="card">
+            <div class="card-head"><span class="card-head-title">Kay pa zòn</span></div>
+            <div class="bar-section" id="dash-zones">
+              <div class="bar-row"><div class="bar-lbl">Petion-Ville</div><div class="bar-track"><div class="bar-fill" style="width:72%;background:var(--orange);">—</div></div></div>
+              <div class="bar-row"><div class="bar-lbl">Delmas</div><div class="bar-track"><div class="bar-fill" style="width:48%;background:#B5D4F4;color:#0C447C;">—</div></div></div>
+              <div class="bar-row"><div class="bar-lbl">Tabarre</div><div class="bar-track"><div class="bar-fill" style="width:30%;background:#C0DD97;color:#27500A;">—</div></div></div>
+              <div class="bar-row"><div class="bar-lbl">Kenscoff</div><div class="bar-track"><div class="bar-fill" style="width:22%;background:#9FE1CB;color:#085041;">—</div></div></div>
+              <div class="bar-row"><div class="bar-lbl">Carrefour</div><div class="bar-track"><div class="bar-fill" style="width:16%;background:#D3D1C7;color:#444441;">—</div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent payments -->
+        <div class="card">
+          <div class="card-head">
+            <span class="card-head-title">Dènye peman pou verifye</span>
+            <span class="card-head-action" onclick="showPage('page-payments',document.querySelectorAll('.sb-item')[3])">Wè tout →</span>
+          </div>
+          <div id="dash-payments"><div class="loader"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ HOUSES ══════ -->
+    <div class="page" id="page-houses">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">Jesyon Kay yo</div>
+          <div class="page-sub">Valide, rejte, oswa wè detay pòs kay</div>
+        </div>
+        <div class="topbar-right">
+          <select class="form-sel" onchange="onHouseStatusFilter(this.value)" style="width:auto;">
+            <option value="">Tout statut</option>
+            <option value="Pending">Pandan</option>
+            <option value="Approved">Apwouve</option>
+            <option value="Rejected">Rejte</option>
+          </select>
+          <select class="form-sel" onchange="onHouseZoneFilter(this.value)" style="width:auto;">
+            <option value="">Tout zòn</option>
+            <option>Petion-Ville</option>
+            <option>Delmas</option>
+            <option>Tabarre</option>
+            <option>Kenscoff</option>
+            <option>Carrefour</option>
+          </select>
+        </div>
+      </div>
+      <div class="content" style="padding-top:16px;">
+        <div class="card">
+          <div class="filter-bar">
+            <input class="filter-inp" placeholder="Chèche tit, zòn, pwopriyetè..." style="flex:1;min-width:180px;" oninput="onHouseSearch(this.value)">
+            <span style="font-size:12px;color:var(--muted);" id="house-count-lbl">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kay</th><th>Pwopriyetè</th><th>Zòn</th>
+                  <th>Pri</th><th>Tip</th><th>Dat</th>
+                  <th>Statut</th><th>Aksyon</th>
+                </tr>
+              </thead>
+              <tbody id="houses-tbody">
+                <tr><td colspan="8"><div class="loader"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ PAYMENTS ══════ -->
+    <div class="page" id="page-payments">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">Jesyon Peman yo</div>
+          <div class="page-sub">Verifye resi MonCash / NatCash</div>
+        </div>
+        <div class="topbar-right">
+          <select class="form-sel" onchange="onPayStatusFilter(this.value)" style="width:auto;">
+            <option value="">Tout statut</option>
+            <option value="Pending">Pandan</option>
+            <option value="Verified">Verifye</option>
+            <option value="Rejected">Rejte</option>
+          </select>
+        </div>
+      </div>
+      <div class="content" style="padding-top:16px;">
+        <div class="card">
+          <div class="filter-bar">
+            <input class="filter-inp" placeholder="Chèche..." style="flex:1;min-width:180px;">
+            <span style="font-size:12px;color:var(--muted);" id="pay-count-lbl">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Itilizatè</th><th>Kay</th><th>Montan</th>
+                  <th>Resi</th><th>Dat</th><th>Statut</th><th>Aksyon</th>
+                </tr>
+              </thead>
+              <tbody id="payments-tbody">
+                <tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ USERS ══════ -->
+    <div class="page" id="page-users">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">Jesyon Itilizatè yo</div>
+          <div class="page-sub">Gere kont ak pèmisyon</div>
+        </div>
+      </div>
+      <div class="content" style="padding-top:16px;">
+        <div class="card">
+          <div class="filter-bar">
+            <input class="filter-inp" placeholder="Chèche pa non oswa email..." style="flex:1;min-width:200px;" oninput="onUserSearch(this.value)">
+            <span style="font-size:12px;color:var(--muted);" id="user-count-lbl">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Itilizatè</th><th>Telefòn</th><th>Kay poste</th>
+                  <th>Peman</th><th>Enskri</th><th>Statut</th><th>Aktif</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ════════════════ PAYMENT MODAL ════════════════ -->
+<div class="modal-bg" id="modal-pay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-pay-title">Resi Peman</div>
+      <button class="modal-close" onclick="document.getElementById('modal-pay').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="resi-preview" id="resi-preview-inner">
+        <div style="font-size:40px;">🧾</div>
+        <div style="font-size:13px;color:var(--muted);">Ap chaje imaj...</div>
+      </div>
+      <table class="detail-tbl" style="width:100%;">
+        <tr><td>Itilizatè</td><td id="resi-user"></td></tr>
+        <tr><td>Kay</td><td id="resi-house"></td></tr>
+        <tr><td>Montan</td><td id="resi-amount" style="color:var(--orange);"></td></tr>
+        <tr><td>Dat voye</td><td id="resi-date"></td></tr>
+        <tr><td>Statut</td><td><span class="pill" id="resi-status"></span></td></tr>
+      </table>
+      <!-- Reject reason (optional) -->
+      <div id="reject-reason-wrap" style="margin-top:14px;display:none;">
+        <label class="form-lbl">Rezon refi (obligatwa)</label>
+        <textarea class="form-textarea" id="reject-reason" placeholder="Eksplike poukisa resi a rejte..."></textarea>
+      </div>
+    </div>
+    <div class="modal-foot" id="modal-pay-actions">
+      <button class="btn btn-reject" id="btn-modal-reject" onclick="modalPayReject()">✕ Rejte</button>
+      <button class="btn btn-verify" id="btn-modal-verify" onclick="modalPayVerify()">✓ Verifye Peman</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ TOAST ════════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════ SCRIPTS ════════════════ -->
+<script src="api.js"></script>
+<script src="admin.js"></script>
+<script>
+  // Set dat jounen an
+  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+  const el = document.getElementById('dash-date');
+  if (el) el.textContent = new Date().toLocaleDateString('fr-HT', opts);
+</script>
+</body>
+</html>
