@@ -1,0 +1,21 @@
+version: '3.9'
+
+# ── Fichye sa a pou DEVLOPMAN lokal sèlman ───────────────────
+# Docker Compose chaje l otomatikman ansanm ak docker-compose.yml
+# NE PAS itilize nan production
+
+services:
+
+  sqlserver:
+    ports:
+      - "1433:1433"   # Aksè dirèk SQL Server nan devlopman
+
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:80"
+    ports:
+      - "5000:80"
+    volumes:
+      - uploads-data:/app/wwwroot/uploads
+      # Hot reload pa disponib nan Docker — relanse konteyè a apre chanjman

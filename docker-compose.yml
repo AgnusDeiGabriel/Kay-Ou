@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+
+  # ── SQL Server ────────────────────────────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: kayayiti-sqlserver
+    environment:
+      SA_PASSWORD: "KayAyiti@2025!"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"          # gratis — chanje ak "Standard" si ou vle
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd",
+             "-S", "localhost",
+             "-U", "sa",
+             "-P", "KayAyiti@2025!",
+             "-Q", "SELECT 1",
+             "-No"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── ASP.NET Core API ──────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kayayiti-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:80"
+      ConnectionStrings__DefaultConnection: >-
+        Server=sqlserver,1433;
+        Database=KayAyitiDB;
+        User Id=sa;
+        Password=KayAyiti@2025!;
+        TrustServerCertificate=True;
+        MultipleActiveResultSets=True;
+    ports:
+      - "5000:80"
+    volumes:
+      - uploads-data:/app/wwwroot/uploads
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+    driver: local
+  uploads-data:
+    driver: local

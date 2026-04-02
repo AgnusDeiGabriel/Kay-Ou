@@ -1,8 +1,5 @@
-/* ============================================================
-   KayAyiti Admin — Main JS (konekte ak ASP.NET Core API)
-   ============================================================ */
 
-// ── DOM helpers ──────────────────────────────────────────────
+
 const $  = id => document.getElementById(id);
 const el = (tag, attrs = {}, html = '') => {
   const e = document.createElement(tag);
@@ -11,7 +8,7 @@ const el = (tag, attrs = {}, html = '') => {
   return e;
 };
 
-// ── Toast ────────────────────────────────────────────────────
+
 let toastTimer;
 function toast(msg, type = 'info', dur = 3500) {
   const t = $('toast');
@@ -21,7 +18,7 @@ function toast(msg, type = 'info', dur = 3500) {
   toastTimer = setTimeout(() => t.classList.remove('show'), dur);
 }
 
-// ── Loader helpers ────────────────────────────────────────────
+
 function setLoading(btnId, on, origTxt) {
   const btn = $(btnId);
   if (!btn) return;
@@ -30,14 +27,14 @@ function setLoading(btnId, on, origTxt) {
   else btn.textContent = origTxt || btn.dataset.orig || btn.textContent;
 }
 
-// ── Page navigation ──────────────────────────────────────────
+
 function showPage(pageId, navEl) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
   $(pageId).classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  // Chaje done pou paj la
+
   const loaders = {
     'page-dashboard': loadDashboard,
     'page-houses':    loadHouses,
@@ -47,7 +44,7 @@ function showPage(pageId, navEl) {
   if (loaders[pageId]) loaders[pageId]();
 }
 
-// ── AUTH ─────────────────────────────────────────────────────
+
 async function doAdminLogin() {
   const email = $('l-email').value.trim();
   const pass  = $('l-pass').value;
@@ -88,7 +85,7 @@ function updateSidebarUser() {
   $('sb-role').textContent = u.email;
 }
 
-// ── DASHBOARD ────────────────────────────────────────────────
+
 async function loadDashboard() {
   try {
     const res = await API.admin.stats();
@@ -165,7 +162,6 @@ async function renderDashPayments() {
   }
 }
 
-// ── HOUSES PAGE ───────────────────────────────────────────────
 let houseFilters = { statut: '', zone: '', search: '', page: 1, pageSize: 20 };
 
 async function loadHouses() {
@@ -229,7 +225,7 @@ function onHouseSearch(val) {
 function onHouseStatusFilter(val) { houseFilters.statut = val; houseFilters.page = 1; loadHouses(); }
 function onHouseZoneFilter(val)   { houseFilters.zone   = val; houseFilters.page = 1; loadHouses(); }
 
-// ── PAYMENTS PAGE ─────────────────────────────────────────────
+
 let payFilters = { statut: '', page: 1, pageSize: 20 };
 
 async function loadPayments() {
@@ -284,7 +280,7 @@ async function payReview(id, action, btn) {
 
 function onPayStatusFilter(val) { payFilters.statut = val; payFilters.page = 1; loadPayments(); }
 
-// ── PAY MODAL ─────────────────────────────────────────────────
+
 let currentPayId = null;
 function openPayModal(p) {
   if (typeof p === 'string') p = JSON.parse(p);
@@ -354,7 +350,7 @@ async function modalPayReject() {
   }
 }
 
-// ── USERS PAGE ────────────────────────────────────────────────
+
 let userFilters = { search: '', page: 1, pageSize: 20 };
 
 async function loadUsers() {
@@ -418,7 +414,7 @@ function onUserSearch(val) {
   userSearchTimer    = setTimeout(loadUsers, 400);
 }
 
-// ── HELPERS ───────────────────────────────────────────────────
+
 function houseCell(h) {
   const img = h.images && h.images[0]
     ? `<img src="${API.BASE_URL.replace('/api','')}${h.images[0]}" style="width:100%;height:100%;object-fit:cover;">`
@@ -450,7 +446,7 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('fr-HT', { day:'numeric', month:'short', year:'numeric' });
 }
 
-// ── INIT ──────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
   // Si admin deja konekte
   if (API.isLoggedIn() && API.isAdmin()) {

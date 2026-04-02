@@ -1,8 +1,4 @@
-/* ============================================================
-   KayAyiti App — Main JS (konekte ak ASP.NET Core API)
-   ============================================================ */
 
-// ── State ────────────────────────────────────────────────────
 const State = {
   curTab: 'all',
   curZone: '',
@@ -16,12 +12,12 @@ const State = {
   myPayments: [],
 };
 
-// ── DOM helpers ──────────────────────────────────────────────
+
 const $ = id => document.getElementById(id);
 const show = id => $(id).style.display = '';
 const hide = id => $(id).style.display = 'none';
 
-// ── Toast ────────────────────────────────────────────────────
+
 let toastTimer;
 function toast(msg, type = 'info', dur = 3000) {
   const el = $('toast');
@@ -31,14 +27,14 @@ function toast(msg, type = 'info', dur = 3000) {
   toastTimer = setTimeout(() => el.classList.remove('show'), dur);
 }
 
-// ── Screen navigation ────────────────────────────────────────
+
 function goTo(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
   window.scrollTo(0, 0);
 }
 
-// ── SPLASH ───────────────────────────────────────────────────
+
 function initSplash() {
   // Si itilizatè deja konekte, al dirèkteman lakay
   if (API.isLoggedIn()) {
@@ -48,7 +44,7 @@ function initSplash() {
   }
 }
 
-// ── AUTH ─────────────────────────────────────────────────────
+
 function showRegister() {
   $('auth-title').textContent = 'Kreye kont ou';
   $('auth-sub').textContent   = 'Antre enfòmasyon ou pou kòmanse';
@@ -128,7 +124,7 @@ function updateHomeUser() {
   $('profile-email').textContent= user.email;
 }
 
-// ── HOME ─────────────────────────────────────────────────────
+
 async function loadHouses(reset = true) {
   if (reset) { State.curPage = 1; State.houses = []; }
 
@@ -220,7 +216,7 @@ function onSearch(val) {
   searchTimer = setTimeout(() => loadHouses(), 400);
 }
 
-// ── DETAIL ───────────────────────────────────────────────────
+
 async function openDetail(id) {
   try {
     const res = await API.houses.get(id);
@@ -278,7 +274,7 @@ async function openDetail(id) {
   }
 }
 
-// ── ADD HOUSE ─────────────────────────────────────────────────
+
 $('add-file-input').addEventListener('change', function () {
   State.selectedFiles = Array.from(this.files);
   if (State.selectedFiles.length) {
@@ -339,7 +335,7 @@ async function submitHouse() {
   }
 }
 
-// ── PAYMENT ───────────────────────────────────────────────────
+
 $('resi-input').addEventListener('change', function () {
   State.resiFile = this.files[0] || null;
   if (State.resiFile) {
@@ -381,7 +377,7 @@ async function submitPayment() {
   }
 }
 
-// ── PROFILE / MY PAYMENTS ─────────────────────────────────────
+
 async function loadMyPayments() {
   if (!API.isLoggedIn()) return;
   $('my-payments-list').innerHTML = '<div class="loader"><div class="spinner"></div></div>';
@@ -405,7 +401,7 @@ async function loadMyPayments() {
   }
 }
 
-// ── Loading state ─────────────────────────────────────────────
+
 function setLoading(btnId, on) {
   const btn = $(btnId);
   if (!btn) return;
@@ -414,7 +410,7 @@ function setLoading(btnId, on) {
   btn.textContent = on ? '⏳ Tann...' : btn.dataset.origText;
 }
 
-// ── INIT ──────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
   initSplash();
 });

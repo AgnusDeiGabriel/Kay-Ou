@@ -3,7 +3,7 @@
 //  Chanje BASE_URL pou URL reyèl backend ou a
 // ============================================================
 const API = {
-  BASE_URL: 'https://localhost:8080', // ← Chanje sa ak URL ou
+  BASE_URL: 'http://192.168.0.70:5000/api', // ← Chanje sa ak URL ou
 
   // ── Token management ─────────────────────────────────────
   getToken()        { return localStorage.getItem('ka_token'); },

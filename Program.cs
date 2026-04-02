@@ -69,15 +69,36 @@ builder.Services.AddSwaggerGen(options =>
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
-builder.WebHost.UseUrls("https://localhost:8080"); // Chanje sa ak URL ou
-
 var app = builder.Build();
 
-// ─── Migrations automatik ─────────────────────────────────────────────────────
+// ─── Migrations automatik (avèk retry pou Docker) ────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    var retries = 0;
+    while (retries < 10)
+    {
+        try
+        {
+            logger.LogInformation("Ap eseye konekte ak SQL Server... (tantativ {n})", retries + 1);
+            db.Database.Migrate();
+            logger.LogInformation("Migration reyisi ✓");
+            break;
+        }
+        catch (Exception ex)
+        {
+            retries++;
+            logger.LogWarning("SQL Server pako prè: {msg}. Tann 5 segonn...", ex.Message);
+            Thread.Sleep(5000);
+            if (retries >= 10)
+            {
+                logger.LogError("Echèk koneksyon SQL Server apre 10 tantativ.");
+                throw;
+            }
+        }
+    }
 }
 
 // ─── Middleware pipeline ──────────────────────────────────────────────────────
@@ -87,10 +108,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "KayAyiti API v1"));
 }
 
+app.UseStaticFiles();
+app.UseDefaultFiles(); // pou /uploads/
+app.UseAuthentication();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
-app.UseStaticFiles(); // pou /uploads/
-app.UseAuthentication();
+
 app.UseAuthorization();
 app.MapControllers();
 
