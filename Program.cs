@@ -108,10 +108,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "KayAyiti API v1"));
 }
 
+app.UseDefaultFiles(); // dwe vini AVAN UseStaticFiles pou / → index.html mache
 app.UseStaticFiles();
-app.UseDefaultFiles(); // pou /uploads/
 app.UseAuthentication();
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("Docker"))
+    app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
 app.UseAuthorization();

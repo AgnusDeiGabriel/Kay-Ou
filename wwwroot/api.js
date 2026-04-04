@@ -1,6 +1,6 @@
 
 const API = {
-  BASE_URL: 'http://localhost:5000/api',
+  BASE_URL: window.location.origin + '/api',
 
   // ── Token management ─────────────────────────────────────
   getToken()        { return localStorage.getItem('ka_token'); },
