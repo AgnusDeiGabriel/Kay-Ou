@@ -49,6 +49,9 @@ public class HouseService : IHouseService
         _db.Houses.Add(house);
         await _db.SaveChangesAsync();
 
+        await _db.Entry(house).Reference(h => h.User).LoadAsync();
+        await _db.Entry(house).Collection(h => h.Images).LoadAsync();
+
         return ApiResponse<HouseDto>.Ok(
             await MapHouseAsync(house, userId),
             "Kay ou a voye pou validasyon admin!");

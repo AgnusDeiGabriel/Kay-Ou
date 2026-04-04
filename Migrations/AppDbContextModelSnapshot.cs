@@ -246,7 +246,7 @@ namespace KayAyiti.Migrations
                             Email = "admin@kayayiti.com",
                             IsActive = true,
                             Nom = "Administrateur",
-                            PasswordHash = "$2a$11$w8K1u7...etc",
+                            PasswordHash = "$2a$11$elBbDc4iVyVCok.WvfQCau2nq2ndD0kn0M67kgI962A0ojiGsTyki",
                             Role = "Admin",
                             Telefon = "+50999999999"
                         });

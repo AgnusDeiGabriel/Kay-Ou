@@ -32,6 +32,15 @@ function goTo(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
   window.scrollTo(0, 0);
+  if (id === 'splash') restartSmokeAnims();
+}
+
+function restartSmokeAnims() {
+  document.querySelectorAll('.smoke').forEach(el => {
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+  });
 }
 
 
@@ -202,6 +211,18 @@ function switchTab(el, val) {
   loadHouses();
 }
 
+function toggleCustomZone() {
+  const sel = $('add-zone');
+  const custom = $('add-zone-custom');
+  if (sel.value === '__autre__') {
+    custom.style.display = '';
+    custom.focus();
+  } else {
+    custom.style.display = 'none';
+    custom.value = '';
+  }
+}
+
 function switchChip(el, val) {
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
@@ -294,7 +315,8 @@ async function submitHouse() {
   const titre       = $('add-titre').value.trim();
   const description = $('add-desc').value.trim();
   const prix        = parseFloat($('add-prix').value);
-  const zone        = $('add-zone').value;
+  const zoneSelect  = $('add-zone').value;
+  const zone        = zoneSelect === '__autre__' ? $('add-zone-custom').value.trim() : zoneSelect.trim();
   const chambres    = parseInt($('add-chambres').value) || 1;
   const beny        = parseInt($('add-beny').value) || 1;
   const superficie  = parseInt($('add-superficie').value) || 50;
@@ -306,6 +328,9 @@ async function submitHouse() {
 
   if (!titre || !description || !prix || isNaN(prix)) {
     toast('Ranpli tout chan obligatwa yo!', 'err'); return;
+  }
+  if (!zone) {
+    toast('Tanpri ekri non zòn lan!', 'err'); return;
   }
 
   setLoading('btn-submit-house', true);

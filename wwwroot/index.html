@@ -14,6 +14,37 @@
 
 <!-- ════════════════ SPLASH ════════════════ -->
 <div class="screen active" id="splash">
+
+  <!-- Animated house -->
+  <div class="splash-house">
+    <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <!-- Chimney -->
+      <rect x="78" y="18" width="10" height="20" rx="1" fill="#5C3A2A"/>
+      <!-- Smoke particles -->
+      <circle class="smoke s1" cx="83" cy="14" r="3" fill="rgba(250,246,241,0.25)"/>
+      <circle class="smoke s2" cx="86" cy="8"  r="2" fill="rgba(250,246,241,0.18)"/>
+      <circle class="smoke s3" cx="81" cy="4"  r="1.5" fill="rgba(250,246,241,0.12)"/>
+      <!-- Roof -->
+      <polygon points="10,50 60,10 110,50" fill="#E8622A"/>
+      <polygon points="10,50 60,10 110,50" fill="none" stroke="#C4501E" stroke-width="1"/>
+      <!-- Wall -->
+      <rect x="18" y="50" width="84" height="46" rx="2" fill="#7A4A30"/>
+      <!-- Door -->
+      <rect x="49" y="70" width="22" height="26" rx="3" fill="#3E2010"/>
+      <circle cx="68" cy="84" r="2" fill="#E8622A"/>
+      <!-- Window left -->
+      <rect class="win" x="24" y="58" width="18" height="16" rx="2" fill="#FAF6F1"/>
+      <line x1="33" y1="58" x2="33" y2="74" stroke="#7A4A30" stroke-width="1.5"/>
+      <line x1="24" y1="66" x2="42" y2="66" stroke="#7A4A30" stroke-width="1.5"/>
+      <!-- Window right -->
+      <rect class="win" x="78" y="58" width="18" height="16" rx="2" fill="#FAF6F1"/>
+      <line x1="87" y1="58" x2="87" y2="74" stroke="#7A4A30" stroke-width="1.5"/>
+      <line x1="78" y1="66" x2="96" y2="66" stroke="#7A4A30" stroke-width="1.5"/>
+      <!-- Ground shadow -->
+      <ellipse cx="60" cy="98" rx="45" ry="4" fill="rgba(0,0,0,0.2)"/>
+    </svg>
+  </div>
+
   <div class="splash-logo">Kay<span>Ayiti</span></div>
   <div class="splash-tag">Imobilye • Ayiti</div>
   <div class="splash-desc">Jwenn kay pou achte oswa lwe nan tout zòn Petion-Ville, Delmas, Tabarre ak plis ankò.</div>
@@ -30,8 +61,31 @@
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Retounen
     </div>
-    <div class="auth-title" id="auth-title">Kreye kont ou</div>
-    <div class="auth-sub" id="auth-sub">Antre enfòmasyon ou pou kòmanse</div>
+    <div class="auth-hero-body">
+      <div>
+        <div class="auth-title" id="auth-title">Kreye kont ou</div>
+        <div class="auth-sub" id="auth-sub">Antre enfòmasyon ou pou kòmanse</div>
+      </div>
+      <div class="auth-house">
+        <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+          <rect x="78" y="18" width="10" height="20" rx="1" fill="#5C3A2A"/>
+          <circle class="smoke s1" cx="83" cy="14" r="3" fill="rgba(250,246,241,0.25)"/>
+          <circle class="smoke s2" cx="86" cy="8"  r="2" fill="rgba(250,246,241,0.18)"/>
+          <circle class="smoke s3" cx="81" cy="4"  r="1.5" fill="rgba(250,246,241,0.12)"/>
+          <polygon points="10,50 60,10 110,50" fill="#E8622A"/>
+          <rect x="18" y="50" width="84" height="46" rx="2" fill="#7A4A30"/>
+          <rect x="49" y="70" width="22" height="26" rx="3" fill="#3E2010"/>
+          <circle cx="68" cy="84" r="2" fill="#E8622A"/>
+          <rect class="win" x="24" y="58" width="18" height="16" rx="2" fill="#FAF6F1"/>
+          <line x1="33" y1="58" x2="33" y2="74" stroke="#7A4A30" stroke-width="1.5"/>
+          <line x1="24" y1="66" x2="42" y2="66" stroke="#7A4A30" stroke-width="1.5"/>
+          <rect class="win" x="78" y="58" width="18" height="16" rx="2" fill="#FAF6F1"/>
+          <line x1="87" y1="58" x2="87" y2="74" stroke="#7A4A30" stroke-width="1.5"/>
+          <line x1="78" y1="66" x2="96" y2="66" stroke="#7A4A30" stroke-width="1.5"/>
+          <ellipse cx="60" cy="98" rx="45" ry="4" fill="rgba(0,0,0,0.2)"/>
+        </svg>
+      </div>
+    </div>
   </div>
 
   <!-- Register -->
@@ -211,14 +265,85 @@
         </div>
         <div class="form-grp">
           <label class="form-lbl">Zòn *</label>
-          <select class="form-inp" id="add-zone">
-            <option>Petion-Ville</option>
-            <option>Delmas</option>
-            <option>Tabarre</option>
-            <option>Kenscoff</option>
+          <select class="form-inp" id="add-zone" onchange="toggleCustomZone()">
+            <option value="">— Chwazi yon zòn —</option>
+            <option>Acul-du-Nord</option>
+            <option>Anse-à-Pitres</option>
+            <option>Anse-à-Veau</option>
+            <option>Anse-d'Hainault</option>
+            <option>Aquin</option>
+            <option>Arcahaie</option>
+            <option>Bainet</option>
+            <option>Baradères</option>
+            <option>Bombardopolis</option>
+            <option>Cap-Haïtien</option>
             <option>Carrefour</option>
+            <option>Cayes-Jacmel</option>
+            <option>Cerca-la-Source</option>
+            <option>Chansolme</option>
+            <option>Chardonnières</option>
+            <option>Cornillon</option>
+            <option>Côtes-de-Fer</option>
             <option>Croix-des-Bouquets</option>
+            <option>Delmas</option>
+            <option>Désarmes</option>
+            <option>Desdunes</option>
+            <option>Dessalines</option>
+            <option>Dondon</option>
+            <option>Ennery</option>
+            <option>Fond-des-Nègres</option>
+            <option>Fort-Liberté</option>
+            <option>Ganthier</option>
+            <option>Gonaïves</option>
+            <option>Grand-Goâve</option>
+            <option>Grande-Rivière-du-Nord</option>
+            <option>Grande-Saline</option>
+            <option>Gros-Morne</option>
+            <option>Hinche</option>
+            <option>Jacmel</option>
+            <option>Jérémie</option>
+            <option>Kenscoff</option>
+            <option>La Chapelle</option>
+            <option>Lascahobas</option>
+            <option>Léogâne</option>
+            <option>Les Anglais</option>
+            <option>Les Cayes</option>
+            <option>Les Irois</option>
+            <option>Limbé</option>
+            <option>Limonade</option>
+            <option>Maïssade</option>
+            <option>Marchand-Dessalines</option>
+            <option>Marigot</option>
+            <option>Marmelade</option>
+            <option>Miragoâne</option>
+            <option>Mirebalais</option>
+            <option>Môle-Saint-Nicolas</option>
+            <option>Mombin-Crochu</option>
+            <option>Ouanaminthe</option>
+            <option>Pétion-Ville</option>
+            <option>Petite-Rivière-de-l'Artibonite</option>
+            <option>Petit-Goâve</option>
+            <option>Plaine-du-Nord</option>
+            <option>Plaisance</option>
+            <option>Port-au-Prince</option>
+            <option>Port-de-Paix</option>
+            <option>Quartier-Morin</option>
+            <option>Roseaux</option>
+            <option>Saint-Louis-du-Nord</option>
+            <option>Saint-Louis-du-Sud</option>
+            <option>Saint-Marc</option>
+            <option>Saint-Michel-de-l'Attalaye</option>
+            <option>Saint-Raphaël</option>
+            <option>Tabarre</option>
+            <option>Thomazeau</option>
+            <option>Thomonde</option>
+            <option>Torbeck</option>
+            <option>Trou-du-Nord</option>
+            <option>Verrettes</option>
+            <option>Ville-Bonheur</option>
+            <option value="__autre__">Lòt zòn...</option>
           </select>
+          <input class="form-inp" id="add-zone-custom" placeholder="Ekri non zòn lan" style="display:none;margin-top:6px;">
         </div>
       </div>
 

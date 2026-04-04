@@ -63,7 +63,7 @@ public class AppDbContext : DbContext
             Id = 1,
             Nom = "Administrateur",
             Email = "admin@kayayiti.com",
-            PasswordHash = "$2a$11$w8K1u7...etc", // hash fixe,
+            PasswordHash = "$2a$11$elBbDc4iVyVCok.WvfQCau2nq2ndD0kn0M67kgI962A0ojiGsTyki",
             Role = "Admin",
             Telefon = "+50999999999",
             IsActive = true,
