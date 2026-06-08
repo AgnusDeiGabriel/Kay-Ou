@@ -494,6 +494,9 @@ function setLoading(btnId, on) {
 }
 
 
+function openInfoModal()  { $('info-modal').classList.add('open'); }
+function closeInfoModal() { $('info-modal').classList.remove('open'); }
+
 document.addEventListener('DOMContentLoaded', () => {
   initSplash();
   initGoogleSignIn();

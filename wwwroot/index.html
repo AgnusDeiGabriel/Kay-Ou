@@ -18,6 +18,7 @@
 
     <!-- Hero -->
     <div class="splash-hero">
+      <button class="info-btn" onclick="openInfoModal()" title="Enfòmasyon sou app la">i</button>
       <div class="splash-house">
         <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
           <rect x="78" y="18" width="10" height="20" rx="1" fill="#5C3A2A"/>
@@ -471,6 +472,56 @@
       </div>
 
       <button class="btn-logout" onclick="doLogout()">Dekonekte</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ INFO MODAL ════════════════ -->
+<div class="info-modal-bg" id="info-modal" onclick="closeInfoModal()">
+  <div class="info-modal" onclick="event.stopPropagation()">
+    <button class="info-modal-close" onclick="closeInfoModal()">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+
+    <div class="info-logo">Kay<span>Ou</span></div>
+    <div class="info-version">Vèsyon 1.0</div>
+
+    <div class="info-section">
+      <div class="info-section-title">Sou App la</div>
+      <p class="info-text">KayOu se yon platfòm imobilye ayisyen ki pèmèt moun vann, achte, oswa lwe kay nan tout vil Ayiti — Petion-Ville, Delmas, Tabarre ak plis ankò.</p>
+    </div>
+
+    <div class="info-section">
+      <div class="info-section-title">Poukisa kreye yon kont?</div>
+      <div class="info-list">
+        <div class="info-item">
+          <div class="info-dot"></div>
+          <span>Wè enfòmasyon kontak pwopriyetè kay yo</span>
+        </div>
+        <div class="info-item">
+          <div class="info-dot"></div>
+          <span>Poste pwòp kay ou pou vann oswa lwe</span>
+        </div>
+        <div class="info-item">
+          <div class="info-dot"></div>
+          <span>Swiv tout peman ak demann ou yo</span>
+        </div>
+        <div class="info-item">
+          <div class="info-dot"></div>
+          <span>Resevwa notifikasyon sou kay ki entèrese ou</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-section-title">Ekip</div>
+      <p class="info-text">Devlope pa ekip <strong><span style="color:#E53935">X</span><span style="color:#1E88E5">I</span><span style="color:#F9A825">O</span><span style="color:#1E88E5">D</span><span style="color:#43A047">I</span><span style="color:#E53935">X</span></strong> — nou kreye solisyon teknoloji pou mache ayisyen an.</p>
+    </div>
+
+    <div class="info-footer">
+      <span>© 2026 KayOu • XIODIX</span>
+      <span class="info-dot-sep"></span>
+      <span>Tout dwa rezève</span>
     </div>
   </div>
 </div>
