@@ -38,64 +38,105 @@ html, body {
 .scroll-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .scroll-body::-webkit-scrollbar { display: none; }
 
-/* ── SPLASH ─────────────────────────────────────────────── */
-#splash {
-  background: var(--brown);
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  text-align: center;
-  padding: 40px;
-}
-.splash-logo { font-family: 'Cormorant Garamond', serif; font-size: 56px; font-weight: 700; color: var(--cream); letter-spacing: -1px; animation: fadeUp .7s ease both; }
-.splash-logo span { color: var(--orange); }
-.splash-tag { color: rgba(250,246,241,.45); font-size: 12px; letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; animation: fadeUp .7s .1s ease both; }
-.splash-desc { color: rgba(250,246,241,.55); font-size: 14px; line-height: 1.6; margin-top: 32px; max-width: 280px; animation: fadeUp .7s .2s ease both; }
-.splash-actions { margin-top: 48px; display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; animation: fadeUp .7s .3s ease both; }
-.btn-main {
-  width: 100%; padding: 15px;
-  background: var(--orange); color: #fff;
-  border: none; border-radius: 14px;
-  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
-  cursor: pointer; transition: background .2s, transform .1s;
-}
-.btn-main:active { background: var(--orange-dk); transform: scale(.98); }
-.btn-main.outline {
-  background: transparent;
-  border: 1.5px solid rgba(255,255,255,.25);
-  color: rgba(250,246,241,.8);
-}
-.btn-main.dark { background: var(--brown); }
-.btn-main.dark:active { background: #1a0e08; }
+/* ── SPLASH + AUTH (yon sèl paj) ──────────────────────────── */
+#splash { background: var(--brown); display: flex; flex-direction: column; }
 
-/* ── AUTH ────────────────────────────────────────────────── */
-#auth { background: var(--cream); }
-.auth-hero { background: var(--brown); padding: 20px 24px 32px; flex-shrink: 0; }
-.back-row { display: flex; align-items: center; gap: 8px; color: rgba(250,246,241,.5); font-size: 13px; cursor: pointer; margin-bottom: 18px; }
-.back-row svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
-.auth-hero-body { display: flex; align-items: flex-end; justify-content: space-between; }
-.auth-title { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 700; color: var(--cream); }
-.auth-sub { font-size: 13px; color: rgba(250,246,241,.45); margin-top: 4px; }
-.auth-house { width: 90px; flex-shrink: 0; animation: houseFloat 3.5s ease-in-out infinite; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3)); }
-.auth-house svg { width: 100%; height: auto; display: block; }
-.auth-body { padding: 28px 24px 40px; }
-.form-grp { margin-bottom: 16px; }
-.form-lbl { display: block; font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; margin-bottom: 6px; }
-.form-inp {
-  width: 100%; padding: 13px 15px;
-  background: var(--white); border: 1.5px solid var(--border);
-  border-radius: 12px; font-family: 'DM Sans', sans-serif;
-  font-size: 14px; color: var(--brown); outline: none;
-  transition: border-color .2s;
+.splash-scroll {
+  display: flex; flex-direction: column;
+  height: 100%; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
-.form-inp:focus { border-color: var(--orange); }
+.splash-scroll::-webkit-scrollbar { display: none; }
+
+.splash-hero {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 48px 24px 32px; flex-shrink: 0;
+}
+
+.splash-logo { font-family: 'Cormorant Garamond', serif; font-size: 48px; font-weight: 700; color: var(--cream); letter-spacing: -1px; }
+.splash-logo span { color: var(--orange); }
+.splash-tag { color: rgba(250,246,241,.4); font-size: 10px; letter-spacing: 4px; text-transform: uppercase; margin-top: 4px; }
+
+/* Auth card */
+.auth-card {
+  background: #fff; border-radius: 32px 32px 0 0;
+  padding: 24px 24px 48px; flex: 1;
+  box-shadow: 0 -6px 30px rgba(0,0,0,.15);
+}
+
+/* Ti tiret anwo kat la */
+.auth-card::before {
+  content: ''; display: block;
+  width: 32px; height: 4px; background: #E0D5CC;
+  border-radius: 2px; margin: 0 auto 20px;
+}
+
+.auth-body { }
+.form-grp { margin-bottom: 14px; }
+.form-lbl { display: block; font-size: 12px; font-weight: 600; color: var(--brown); margin-bottom: 6px; }
+.form-inp {
+  width: 100%; padding: 14px 15px;
+  background: #F8F4F1; border: 1.5px solid transparent;
+  border-radius: 12px; font-family: 'DM Sans', sans-serif;
+  font-size: 15px; color: var(--brown); outline: none;
+  transition: border-color .2s, background .2s;
+}
+.form-inp:focus { border-color: var(--orange); background: #fff; }
 .form-inp::placeholder { color: #C8B8AC; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.auth-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--muted); }
+
+/* Gradient button */
+.btn-auth {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, #E8622A 0%, #B8420E 100%);
+  color: #fff; border: none; border-radius: 14px;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  cursor: pointer; margin-top: 6px;
+  box-shadow: 0 5px 16px rgba(184,66,14,.35);
+  transition: opacity .2s, transform .1s;
+}
+.btn-auth:active { opacity: .88; transform: scale(.98); }
+.btn-auth:disabled { opacity: .55; cursor: not-allowed; }
+
+.btn-main { width: 100%; padding: 15px; background: var(--orange); color: #fff; border: none; border-radius: 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
+.btn-main.dark { background: var(--brown); }
+
+.auth-switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--muted); }
 .auth-switch a { color: var(--orange); cursor: pointer; font-weight: 500; }
 .form-error { font-size: 12px; color: var(--red); margin-top: 5px; display: none; }
 
 /* ── SOCIAL LOGIN ─────────────────────────────────────────── */
+.social-btns { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
+.social-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 14px;
+  border: 1.5px solid var(--border); background: #fff;
+  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.07);
+  transition: transform .12s, box-shadow .12s;
+}
+.social-btn:active { transform: scale(.91); box-shadow: none; }
+.social-btn:disabled { opacity: .35; cursor: not-allowed; }
+.social-apple    { background: #111; border-color: #111; color: #fff; }
+.social-facebook { background: #1877F2; border-color: #1877F2; }
+
+.social-divider {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.social-divider::before, .social-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.social-divider span { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+/* Desktop: santre */
+@media (min-width: 600px) {
+  #splash { align-items: center; justify-content: center; }
+  .splash-scroll { width: 100%; max-width: 420px; height: auto; min-height: 0; }
+  .auth-card { flex: none; border-radius: 0; }
+  .auth-card::before { display: none; }
+}
+
+/* ── AUTH (ansyen — kenbe pou referans) ──────────────────── */
 .auth-divider {
   display: flex; align-items: center; gap: 10px;
   margin: 20px 0 16px;

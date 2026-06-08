@@ -341,11 +341,11 @@ C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\gfckmi1973-{0}-ogn4
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\AspNet.Security.OAuth.Apple.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.Facebook.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.Google.dll
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-0q5lyrauap-0q5lyrauap.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Google.Apis.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Google.Apis.Auth.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Google.Apis.Core.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\System.Management.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\runtimes\win\lib\net7.0\System.Management.dll
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-g0e4rpjai0-g0e4rpjai0.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-g4qg127an5-g4qg127an5.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-050cnb6ofr-050cnb6ofr.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-w7dmi4gp4f-w7dmi4gp4f.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-t2cv0wy29z-t2cv0wy29z.gz

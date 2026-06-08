@@ -118,16 +118,12 @@ async function loadSocialProviders() {
 
 
 function showRegister() {
-  $('auth-title').textContent = 'Kreye kont ou';
-  $('auth-sub').textContent   = 'Antre enfòmasyon ou pou kòmanse';
   show('reg-form'); hide('login-form');
-  goTo('auth'); loadSocialProviders();
+  loadSocialProviders();
 }
 function showLogin() {
-  $('auth-title').textContent = 'Konekte';
-  $('auth-sub').textContent   = 'Kontan wè ou ankò!';
   hide('reg-form'); show('login-form');
-  goTo('auth'); loadSocialProviders();
+  loadSocialProviders();
 }
 
 async function doRegister() {

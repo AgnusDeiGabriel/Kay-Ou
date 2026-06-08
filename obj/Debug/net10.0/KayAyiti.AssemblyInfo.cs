@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KayAyiti")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+083f71a10c3e874e69ff8f31ec52c524335b3ce0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d01c54f086ef68c4842006cc302676b477aebf47")]
 [assembly: System.Reflection.AssemblyProductAttribute("KayAyiti")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KayAyiti")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
