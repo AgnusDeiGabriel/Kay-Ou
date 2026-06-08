@@ -8,8 +8,8 @@ namespace KayAyiti.Services;
 public interface IHouseService
 {
     Task<ApiResponse<HouseDto>> CreateAsync(CreateHouseRequest req, int userId);
-    Task<ApiResponse<PagedResult<HouseDto>>> GetAllAsync(HouseFilter filter, int? currentUserId);
-    Task<ApiResponse<HouseDto>> GetByIdAsync(int id, int? currentUserId);
+    Task<ApiResponse<PagedResult<HouseDto>>> GetAllAsync(HouseFilter filter, int? currentUserId, bool isAdmin = false);
+    Task<ApiResponse<HouseDto>> GetByIdAsync(int id, int? currentUserId, bool isAdmin = false);
     Task<ApiResponse<HouseDto>> UpdateAsync(int id, UpdateHouseRequest req, int userId);
     Task<ApiResponse<bool>> DeleteAsync(int id, int userId, string userRole);
     Task<ApiResponse<HouseDto>> AdminActionAsync(int id, AdminHouseActionRequest req, int adminId);
@@ -58,7 +58,7 @@ public class HouseService : IHouseService
     }
 
     public async Task<ApiResponse<PagedResult<HouseDto>>> GetAllAsync(
-        HouseFilter filter, int? currentUserId)
+        HouseFilter filter, int? currentUserId, bool isAdmin = false)
     {
         var query = _db.Houses
             .Include(h => h.User)
@@ -83,6 +83,12 @@ public class HouseService : IHouseService
         if (filter.PrixMax.HasValue)
             query = query.Where(h => h.Prix <= filter.PrixMax);
 
+        if (filter.ChambreMin.HasValue)
+            query = query.Where(h => h.Chambres >= filter.ChambreMin);
+
+        if (filter.ChambreMax.HasValue)
+            query = query.Where(h => h.Chambres <= filter.ChambreMax);
+
         if (!string.IsNullOrEmpty(filter.Search))
             query = query.Where(h =>
                 h.Titre.Contains(filter.Search) ||
@@ -99,7 +105,7 @@ public class HouseService : IHouseService
 
         var items = new List<HouseDto>();
         foreach (var h in houses)
-            items.Add(await MapHouseAsync(h, currentUserId));
+            items.Add(await MapHouseAsync(h, currentUserId, isAdmin));
 
         return ApiResponse<PagedResult<HouseDto>>.Ok(new PagedResult<HouseDto>
         {
@@ -110,7 +116,7 @@ public class HouseService : IHouseService
         });
     }
 
-    public async Task<ApiResponse<HouseDto>> GetByIdAsync(int id, int? currentUserId)
+    public async Task<ApiResponse<HouseDto>> GetByIdAsync(int id, int? currentUserId, bool isAdmin = false)
     {
         var house = await _db.Houses
             .Include(h => h.User)
@@ -120,7 +126,7 @@ public class HouseService : IHouseService
         if (house is null)
             return ApiResponse<HouseDto>.Fail("Kay pa jwenn.");
 
-        return ApiResponse<HouseDto>.Ok(await MapHouseAsync(house, currentUserId));
+        return ApiResponse<HouseDto>.Ok(await MapHouseAsync(house, currentUserId, isAdmin));
     }
 
     public async Task<ApiResponse<HouseDto>> UpdateAsync(
@@ -185,7 +191,7 @@ public class HouseService : IHouseService
 
         await _db.SaveChangesAsync();
         return ApiResponse<HouseDto>.Ok(
-            await MapHouseAsync(house, adminId),
+            await MapHouseAsync(house, adminId, isAdmin: true),
             $"Kay {(req.Action == "Approved" ? "apwouve" : "rejte")} avèk siksè.");
     }
 
@@ -238,12 +244,23 @@ public class HouseService : IHouseService
 
     // ─── Mapper ──────────────────────────────────────────────────────────────
 
-    private async Task<HouseDto> MapHouseAsync(House h, int? currentUserId)
+    private async Task<HouseDto> MapHouseAsync(House h, int? currentUserId, bool isAdmin = false)
     {
+        bool isOwner = currentUserId.HasValue && currentUserId == h.UserId;
+
         bool hasPaid = false;
-        if (currentUserId.HasValue)
+        if (currentUserId.HasValue && !isOwner)
             hasPaid = await _db.Payments.AnyAsync(p =>
                 p.UserId == currentUserId && p.HouseId == h.Id && p.Statut == "Verified");
+
+        bool canSeeContact = isAdmin || isOwner || hasPaid;
+
+        var owner = AuthService.MapUser(h.User);
+        if (!canSeeContact)
+        {
+            owner.Telefon = string.Empty;
+            owner.Email = string.Empty;
+        }
 
         return new HouseDto
         {
@@ -262,9 +279,9 @@ public class HouseService : IHouseService
             Statut = h.Statut,
             RejectionReason = h.RejectionReason,
             CreatedAt = h.CreatedAt,
-            Owner = AuthService.MapUser(h.User),
+            Owner = owner,
             Images = h.Images.Select(i => i.ImageUrl).ToList(),
-            UserHasPaid = hasPaid
+            UserHasPaid = hasPaid || isOwner
         };
     }
 }

@@ -95,6 +95,30 @@ html, body {
 .auth-switch a { color: var(--orange); cursor: pointer; font-weight: 500; }
 .form-error { font-size: 12px; color: var(--red); margin-top: 5px; display: none; }
 
+/* ── SOCIAL LOGIN ─────────────────────────────────────────── */
+.auth-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 20px 0 16px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.auth-divider span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+.auth-social-btns { display: flex; justify-content: center; gap: 12px; }
+
+.auth-social-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 14px;
+  border: 1.5px solid var(--border); background: #fff;
+  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.06);
+  transition: transform .12s, box-shadow .12s;
+}
+.auth-social-btn:active { transform: scale(.92); box-shadow: none; }
+.auth-social-btn:disabled { opacity: .35; cursor: not-allowed; }
+.auth-apple    { background: #111; border-color: #111; color: #fff; }
+.auth-facebook { background: #1877F2; border-color: #1877F2; }
+
 /* ── HOME HEADER ─────────────────────────────────────────── */
 #home { background: var(--cream); }
 .home-hdr { background: var(--brown); padding: 16px 20px 20px; flex-shrink: 0; }

@@ -41,6 +41,17 @@ public class RefreshTokenRequest
     [Required] public string RefreshToken { get; set; } = string.Empty;
 }
 
+public class GoogleTokenRequest
+{
+    [Required] public string Credential { get; set; } = string.Empty;
+}
+
+public class VerifyEmailRequest
+{
+    [Required] public string Token { get; set; } = string.Empty;
+    [Required] public string Password { get; set; } = string.Empty;
+}
+
 // ─── USER ────────────────────────────────────────────────────────────────────
 
 public class UserDto
@@ -52,6 +63,8 @@ public class UserDto
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int? HouseCount { get; set; }
+    public int? PaymentCount { get; set; }
 }
 
 // ─── HOUSE ───────────────────────────────────────────────────────────────────
@@ -172,6 +185,8 @@ public class HouseFilter
     public string? Statut { get; set; }
     public decimal? PrixMin { get; set; }
     public decimal? PrixMax { get; set; }
+    public int? ChambreMin { get; set; }
+    public int? ChambreMax { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 10;
     public string? Search { get; set; }

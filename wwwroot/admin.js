@@ -354,10 +354,38 @@ async function modalPayReject() {
 let userFilters = { search: '', page: 1, pageSize: 20 };
 
 async function loadUsers() {
-  const tbody = $('users-tbody');
-  tbody.innerHTML = '<tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>';
+  await Promise.all([loadAdminUsers(), loadAppUsers()]);
+}
+
+async function loadAdminUsers() {
+  const tbody = $('admins-tbody');
+  tbody.innerHTML = '<tr><td colspan="4"><div class="loader"><div class="spinner"></div></div></td></tr>';
   try {
-    const params = { page: userFilters.page, pageSize: userFilters.pageSize };
+    const res  = await API.admin.users({ role: 'Admin', pageSize: 50 });
+    const data = res.data;
+    $('admin-count-lbl').textContent = data.total + ' admin';
+
+    if (!data.items.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px;">Pa gen admin.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.items.map(u => `
+      <tr>
+        <td>${userCell(u)}</td>
+        <td>${u.telefon || '—'}</td>
+        <td>${fmtDate(u.createdAt)}</td>
+        <td><span class="pill pill-${u.isActive ? 'active' : 'inactive'}">${u.isActive ? 'Aktif' : 'Dezaktive'}</span></td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);padding:16px;">${e.message}</td></tr>`;
+  }
+}
+
+async function loadAppUsers() {
+  const tbody = $('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="8"><div class="loader"><div class="spinner"></div></div></td></tr>';
+  try {
+    const params = { role: 'User', page: userFilters.page, pageSize: userFilters.pageSize };
     if (userFilters.search) params.search = userFilters.search;
 
     const res  = await API.admin.users(params);
@@ -365,15 +393,15 @@ async function loadUsers() {
     $('user-count-lbl').textContent = data.total + ' itilizatè';
 
     if (!data.items.length) {
-      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-sub">Pa gen itilizatè pou montre.</div></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-sub">Pa gen itilizatè pou montre.</div></div></td></tr>';
       return;
     }
     tbody.innerHTML = data.items.map(u => `
       <tr>
         <td>${userCell(u)}</td>
         <td>${u.telefon || '—'}</td>
-        <td>—</td>
-        <td>—</td>
+        <td>${u.houseCount ?? 0}</td>
+        <td>${u.paymentCount ?? 0}</td>
         <td>${fmtDate(u.createdAt)}</td>
         <td><span class="pill pill-${u.isActive ? 'active' : 'inactive'}" id="pill-${u.id}">${u.isActive ? 'Aktif' : 'Dezaktive'}</span></td>
         <td>
@@ -381,9 +409,12 @@ async function loadUsers() {
             <button class="toggle ${u.isActive ? 'on' : ''}" id="toggle-${u.id}" onclick="toggleUser(${u.id},this)"></button>
           </div>
         </td>
+        <td>
+          <button class="btn btn-sm btn-reject" onclick="deleteUser(${u.id},'${u.nom.replace(/'/g,"\\'")}',this)" title="Efase itilizatè">🗑</button>
+        </td>
       </tr>`).join('');
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);padding:16px;">${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:16px;">${e.message}</td></tr>`;
   }
 }
 
@@ -406,12 +437,26 @@ async function toggleUser(id, btn) {
   }
 }
 
+async function deleteUser(id, nom, btn) {
+  if (!confirm(`Ou sèten ou vle efase "${nom}"?\nSa ap efase kont li, kay li yo, ak tout peman li yo.`)) return;
+  btn.disabled = true;
+  try {
+    await API.admin.deleteUser(id);
+    toast(`"${nom}" efase avèk siksè.`, 'ok');
+    loadUsers();
+    loadDashboard();
+  } catch (e) {
+    toast(e.message, 'err');
+    btn.disabled = false;
+  }
+}
+
 let userSearchTimer;
 function onUserSearch(val) {
   clearTimeout(userSearchTimer);
   userFilters.search = val;
   userFilters.page   = 1;
-  userSearchTimer    = setTimeout(loadUsers, 400);
+  userSearchTimer    = setTimeout(loadAppUsers, 400);
 }
 
 
@@ -448,6 +493,12 @@ function fmtDate(iso) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Si itilizatè nòmal tante aksede admin panel → voye li sou UI piblik
+  if (API.isLoggedIn() && !API.isAdmin()) {
+    window.location.href = '/';
+    return;
+  }
+
   // Si admin deja konekte
   if (API.isLoggedIn() && API.isAdmin()) {
     $('login-page').style.display = 'none';

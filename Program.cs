@@ -1,4 +1,6 @@
 using System.Text;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -15,27 +17,86 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // ─── Services ────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<JwtHelper>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IHouseService, HouseService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
-// ─── JWT Authentication ──────────────────────────────────────────────────────
+// ─── JWT + OAuth Authentication ─────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]!;
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+var cfg    = builder.Configuration;
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.TokenValidationParameters = new TokenValidationParameters
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ValidateIssuer = true,
+        ValidIssuer = cfg["Jwt:Issuer"],
+        ValidateAudience = true,
+        ValidAudience = cfg["Jwt:Audience"],
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+})
+.AddCookie("External", o =>
+{
+    o.Cookie.SameSite     = SameSiteMode.Lax;
+    o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    o.ExpireTimeSpan      = TimeSpan.FromMinutes(10);
+});
+
+// Google — ajoute sèlman si credentials konfigire
+if (!string.IsNullOrEmpty(cfg["OAuth:Google:ClientId"]))
+{
+    builder.Services.AddAuthentication()
+        .AddGoogle("Google", o =>
         {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidateAudience = true,
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
-    });
+            o.SignInScheme = "External";
+            o.ClientId     = cfg["OAuth:Google:ClientId"]!;
+            o.ClientSecret = cfg["OAuth:Google:ClientSecret"]!;
+            o.CallbackPath = "/api/auth/callback/google";
+            o.Scope.Add("email");
+            o.Scope.Add("profile");
+        });
+}
+
+// Facebook — ajoute sèlman si credentials konfigire
+if (!string.IsNullOrEmpty(cfg["OAuth:Facebook:AppId"]))
+{
+    builder.Services.AddAuthentication()
+        .AddFacebook("Facebook", o =>
+        {
+            o.SignInScheme = "External";
+            o.AppId        = cfg["OAuth:Facebook:AppId"]!;
+            o.AppSecret    = cfg["OAuth:Facebook:AppSecret"]!;
+            o.CallbackPath = "/api/auth/callback/facebook";
+            o.Scope.Add("email");
+        });
+}
+
+// Apple — ajoute sèlman si credentials konfigire
+if (!string.IsNullOrEmpty(cfg["OAuth:Apple:ClientId"]))
+{
+    builder.Services.AddAuthentication()
+        .AddApple("Apple", o =>
+        {
+            o.SignInScheme          = "External";
+            o.ClientId              = cfg["OAuth:Apple:ClientId"]!;
+            o.TeamId                = cfg["OAuth:Apple:TeamId"]!;
+            o.KeyId                 = cfg["OAuth:Apple:KeyId"]!;
+            o.CallbackPath          = "/api/auth/callback/apple";
+            o.GenerateClientSecret  = true;
+            o.PrivateKey            = (_, _) =>
+                Task.FromResult((cfg["OAuth:Apple:PrivateKey"] ?? "").AsMemory());
+        });
+}
 
 builder.Services.AddAuthorization();
 
@@ -110,6 +171,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseDefaultFiles(); // dwe vini AVAN UseStaticFiles pou / → index.html mache
 app.UseStaticFiles();
+app.MapGet("/admin", (IWebHostEnvironment env) =>
+    Results.File(Path.Combine(env.WebRootPath, "admin.html"), "text/html"));
+app.MapGet("/verify", (IWebHostEnvironment env) =>
+    Results.File(Path.Combine(env.WebRootPath, "verify.html"), "text/html"));
 app.UseAuthentication();
 if (!app.Environment.IsEnvironment("Docker"))
     app.UseHttpsRedirection();

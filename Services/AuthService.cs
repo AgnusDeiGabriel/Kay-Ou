@@ -8,10 +8,13 @@ namespace KayAyiti.Services;
 
 public interface IAuthService
 {
-    Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest req);
+    Task<ApiResponse<string>> RegisterAsync(RegisterRequest req);
     Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest req);
     Task<ApiResponse<AuthResponse>> RefreshAsync(string refreshToken);
     Task<bool> RevokeTokenAsync(string refreshToken);
+    Task<ApiResponse<bool>> CheckTokenAsync(string token);
+    Task<ApiResponse<AuthResponse>> VerifyEmailAsync(VerifyEmailRequest req);
+    Task<AuthResponse> FindOrCreateSocialUserAsync(string provider, string providerId, string email, string name);
 }
 
 public class AuthService : IAuthService
@@ -19,18 +22,22 @@ public class AuthService : IAuthService
     private readonly AppDbContext _db;
     private readonly JwtHelper _jwt;
     private readonly IConfiguration _config;
+    private readonly IEmailService _email;
 
-    public AuthService(AppDbContext db, JwtHelper jwt, IConfiguration config)
+    public AuthService(AppDbContext db, JwtHelper jwt, IConfiguration config, IEmailService email)
     {
         _db = db;
         _jwt = jwt;
         _config = config;
+        _email = email;
     }
 
-    public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest req)
+    public async Task<ApiResponse<string>> RegisterAsync(RegisterRequest req)
     {
         if (await _db.Users.AnyAsync(u => u.Email == req.Email.ToLower()))
-            return ApiResponse<AuthResponse>.Fail("Email sa a deja itilize.");
+            return ApiResponse<string>.Fail("Email sa a deja itilize.");
+
+        var token = Guid.NewGuid().ToString("N");
 
         var user = new User
         {
@@ -38,15 +45,20 @@ public class AuthService : IAuthService
             Email = req.Email.ToLower().Trim(),
             Telefon = req.Telefon.Trim(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-            Role = "User"
+            Role = "User",
+            EmailVerified = false,
+            EmailVerificationToken = token,
+            EmailVerificationExpiry = DateTime.UtcNow.AddHours(24)
         };
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        return ApiResponse<AuthResponse>.Ok(
-            await BuildAuthResponse(user),
-            "Kont kreye avèk siksè!");
+        await _email.SendVerificationEmailAsync(user.Email, user.Nom, token);
+
+        return ApiResponse<string>.Ok(
+            user.Email,
+            "Kont kreye! Tcheke email ou pou verifye kont ou.");
     }
 
     public async Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest req)
@@ -60,9 +72,46 @@ public class AuthService : IAuthService
         if (!user.IsActive)
             return ApiResponse<AuthResponse>.Fail("Kont ou dezaktive. Kontakte admin.");
 
+        if (!user.EmailVerified)
+            return ApiResponse<AuthResponse>.Fail("Verifye email ou anvan ou konekte. Tcheke bwat email ou.");
+
         return ApiResponse<AuthResponse>.Ok(
             await BuildAuthResponse(user),
             "Koneksyon reyisi!");
+    }
+
+    public async Task<ApiResponse<bool>> CheckTokenAsync(string token)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+        if (user is null)
+            return ApiResponse<bool>.Fail("Lyen sa a pa valid oswa deja itilize.");
+        if (user.EmailVerificationExpiry < DateTime.UtcNow)
+            return ApiResponse<bool>.Fail("Lyen an ekspire. Kreye kont ou ankò.");
+        return ApiResponse<bool>.Ok(true);
+    }
+
+    public async Task<ApiResponse<AuthResponse>> VerifyEmailAsync(VerifyEmailRequest req)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == req.Token);
+
+        if (user is null)
+            return ApiResponse<AuthResponse>.Fail("Lyen sa a pa valid oswa deja itilize.");
+
+        if (user.EmailVerificationExpiry < DateTime.UtcNow)
+            return ApiResponse<AuthResponse>.Fail("Lyen an ekspire. Kreye kont ou ankò.");
+
+        if (!BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
+            return ApiResponse<AuthResponse>.Fail("Modpas ou pa kòrèk.");
+
+        user.EmailVerified = true;
+        user.EmailVerificationToken = null;
+        user.EmailVerificationExpiry = null;
+
+        await _db.SaveChangesAsync();
+
+        return ApiResponse<AuthResponse>.Ok(
+            await BuildAuthResponse(user),
+            "Email verifye! Ou konekte otomatikman.");
     }
 
     public async Task<ApiResponse<AuthResponse>> RefreshAsync(string refreshToken)
@@ -118,6 +167,52 @@ public class AuthService : IAuthService
             RefreshToken = rawRefreshToken,
             User = MapUser(user)
         };
+    }
+
+    public async Task<AuthResponse> FindOrCreateSocialUserAsync(
+        string provider, string providerId, string email, string name)
+    {
+        // Chèche pa provider ID
+        User? user = provider switch
+        {
+            "Google"   => await _db.Users.FirstOrDefaultAsync(u => u.GoogleId   == providerId),
+            "Facebook" => await _db.Users.FirstOrDefaultAsync(u => u.FacebookId == providerId),
+            "Apple"    => await _db.Users.FirstOrDefaultAsync(u => u.AppleId    == providerId),
+            _          => null
+        };
+
+        // Si pa jwenn pa ID, chèche pa email
+        user ??= await _db.Users.FirstOrDefaultAsync(u => u.Email == email.ToLower());
+
+        if (user is null)
+        {
+            user = new User
+            {
+                Nom           = name.Trim(),
+                Email         = email.ToLower().Trim(),
+                Telefon       = string.Empty,
+                PasswordHash  = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+                Role          = "User",
+                EmailVerified = true,
+                IsActive      = true
+            };
+            _db.Users.Add(user);
+        }
+        else if (!user.EmailVerified)
+        {
+            user.EmailVerified = true;
+        }
+
+        // Asosye provider ID
+        switch (provider)
+        {
+            case "Google":   user.GoogleId   = providerId; break;
+            case "Facebook": user.FacebookId = providerId; break;
+            case "Apple":    user.AppleId    = providerId; break;
+        }
+
+        await _db.SaveChangesAsync();
+        return await BuildAuthResponse(user);
     }
 
     public static UserDto MapUser(User u) => new()

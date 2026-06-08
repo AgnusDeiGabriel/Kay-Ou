@@ -33,6 +33,8 @@ public class PaymentService : IPaymentService
         if (house is null) return ApiResponse<PaymentDto>.Fail("Kay pa jwenn.");
         if (house.Statut != "Approved")
             return ApiResponse<PaymentDto>.Fail("Kay sa a pako apwouve pa admin.");
+        if (house.UserId == userId)
+            return ApiResponse<PaymentDto>.Fail("Ou pa ka peye pou pwòp kay ou a.");
 
         // Verifye si itilizatè a deja peye
         var existingPayment = await _db.Payments.FirstOrDefaultAsync(p =>

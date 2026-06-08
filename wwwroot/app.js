@@ -45,28 +45,89 @@ function restartSmokeAnims() {
 
 
 function initSplash() {
-  // Si itilizatè deja konekte, al dirèkteman lakay
-  if (API.isLoggedIn()) {
-    goTo('home');
-    loadHouses();
-    updateHomeUser();
+  // Tcheke OAuth callback
+  const params = new URLSearchParams(window.location.search);
+  const kaToken = params.get('ka_token'), kaRefresh = params.get('ka_refresh'), kaUser = params.get('ka_user');
+  if (kaToken && kaRefresh && kaUser) {
+    try {
+      const user = JSON.parse(decodeURIComponent(kaUser));
+      API.saveAuth({ accessToken: kaToken, refreshToken: kaRefresh, user });
+      window.history.replaceState({}, '', '/');
+      if (user.role === 'Admin') { window.location.href = '/admin'; return; }
+      toast('Byenveni ' + user.nom + ' 👋', 'ok');
+      updateHomeUser(); goTo('home'); loadHouses(); return;
+    } catch {}
   }
+  if (params.get('oauth') === 'error') {
+    window.history.replaceState({}, '', '/');
+    toast('Koneksyon sosyal echwe. Eseye ankò.', 'err');
+  }
+
+  if (API.isLoggedIn()) {
+    if (API.isAdmin()) { window.location.href = '/admin'; return; }
+    goTo('home'); loadHouses(); updateHomeUser();
+  }
+}
+
+let _googleReady = false;
+
+async function initGoogleSignIn() {
+  try {
+    const res = await API.req('GET', '/auth/config');
+    const clientId = res.data?.googleClientId;
+    if (!clientId || typeof google === 'undefined') return;
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: async (response) => {
+        try {
+          const r = await API.req('POST', '/auth/google-token', { credential: response.credential });
+          API.saveAuth(r.data);
+          if (r.data.user.role === 'Admin') { window.location.href = '/admin'; return; }
+          toast('Byenveni ' + r.data.user.nom + ' 👋', 'ok');
+          updateHomeUser(); goTo('home'); loadHouses();
+        } catch (e) { toast(e.message, 'err'); }
+      }
+    });
+    _googleReady = true;
+  } catch {}
+}
+
+function socialLogin(provider) {
+  if (provider === 'Google') {
+    if (!_googleReady || typeof google === 'undefined') {
+      toast('Google pako prè. Eseye ankò.', 'info'); return;
+    }
+    google.accounts.id.prompt(); return;
+  }
+  window.location.href = '/api/auth/signin/' + provider;
+}
+
+async function loadSocialProviders() {
+  try {
+    const res = await API.req('GET', '/auth/providers');
+    const active = new Set(res.data || []);
+    document.querySelectorAll('.auth-social-btn').forEach(btn => {
+      const key = btn.classList.contains('auth-google') ? 'google'
+                : btn.classList.contains('auth-apple')  ? 'apple' : 'facebook';
+      btn.disabled = !active.has(key);
+      btn.style.opacity = active.has(key) ? '1' : '0.35';
+      btn.title = active.has(key) ? key.charAt(0).toUpperCase()+key.slice(1) : 'Pa konfigire ankò';
+    });
+  } catch {}
 }
 
 
 function showRegister() {
   $('auth-title').textContent = 'Kreye kont ou';
   $('auth-sub').textContent   = 'Antre enfòmasyon ou pou kòmanse';
-  show('reg-form');
-  hide('login-form');
-  goTo('auth');
+  show('reg-form'); hide('login-form');
+  goTo('auth'); loadSocialProviders();
 }
 function showLogin() {
   $('auth-title').textContent = 'Konekte';
   $('auth-sub').textContent   = 'Kontan wè ou ankò!';
-  hide('reg-form');
-  show('login-form');
-  goTo('auth');
+  hide('reg-form'); show('login-form');
+  goTo('auth'); loadSocialProviders();
 }
 
 async function doRegister() {
@@ -103,6 +164,7 @@ async function doLogin() {
   try {
     const res = await API.auth.login({ email, password: pass });
     API.saveAuth(res.data);
+    if (res.data.user.role === 'Admin') { window.location.href = '/admin'; return; }
     toast('Byenveni ' + res.data.user.nom + ' 👋', 'ok');
     updateHomeUser();
     goTo('home');
@@ -438,4 +500,5 @@ function setLoading(btnId, on) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initSplash();
+  initGoogleSignIn();
 });

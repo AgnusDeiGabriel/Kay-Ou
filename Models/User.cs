@@ -22,6 +22,14 @@ public class User
 
     public bool IsActive { get; set; } = true;
 
+    public bool EmailVerified { get; set; } = false;
+    public string? EmailVerificationToken { get; set; }
+    public DateTime? EmailVerificationExpiry { get; set; }
+
+    public string? GoogleId { get; set; }
+    public string? FacebookId { get; set; }
+    public string? AppleId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

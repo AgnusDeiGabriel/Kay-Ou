@@ -99,8 +99,9 @@ const API = {
 
   // ── ADMIN ─────────────────────────────────────────────────
   admin: {
-    stats:        ()     => API.req('GET',   '/admin/stats'),
-    users:        (p={}) => API.req('GET',   '/admin/users?' + new URLSearchParams(p)),
-    toggleActive: (id)   => API.req('PATCH', `/admin/users/${id}/toggle-active`),
+    stats:        ()     => API.req('GET',    '/admin/stats'),
+    users:        (p={}) => API.req('GET',    '/admin/users?' + new URLSearchParams(p)),
+    toggleActive: (id)   => API.req('PATCH',  `/admin/users/${id}/toggle-active`),
+    deleteUser:   (id)   => API.req('DELETE', `/admin/users/${id}`),
   }
 };

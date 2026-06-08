@@ -27,7 +27,7 @@ public class HousesController : ControllerBase
     {
         // Non-admin pa ka filtre pa Statut
         if (CurrentRole != "Admin") filter.Statut = "Approved";
-        var result = await _houses.GetAllAsync(filter, CurrentUserId);
+        var result = await _houses.GetAllAsync(filter, CurrentUserId, CurrentRole == "Admin");
         return Ok(result);
     }
 
@@ -35,7 +35,7 @@ public class HousesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await _houses.GetByIdAsync(id, CurrentUserId);
+        var result = await _houses.GetByIdAsync(id, CurrentUserId, CurrentRole == "Admin");
         return result.Success ? Ok(result) : NotFound(result);
     }
 
@@ -87,7 +87,7 @@ public class HousesController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AdminGetAll([FromQuery] HouseFilter filter)
     {
-        var result = await _houses.GetAllAsync(filter, CurrentUserId);
+        var result = await _houses.GetAllAsync(filter, CurrentUserId, isAdmin: true);
         return Ok(result);
     }
 

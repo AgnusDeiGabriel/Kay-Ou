@@ -253,8 +253,33 @@
           <div class="page-sub">Gere kont ak pèmisyon</div>
         </div>
       </div>
-      <div class="content" style="padding-top:16px;">
+      <div class="content" style="padding-top:16px;display:flex;flex-direction:column;gap:20px;">
+
+        <!-- ── Administratè yo ── -->
         <div class="card">
+          <div class="card-head">
+            <span class="card-head-title">Administratè yo</span>
+            <span id="admin-count-lbl" style="font-size:12px;color:var(--muted);">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Itilizatè</th><th>Telefòn</th><th>Enskri</th><th>Statut</th>
+                </tr>
+              </thead>
+              <tbody id="admins-tbody">
+                <tr><td colspan="4"><div class="loader"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Itilizatè App yo ── -->
+        <div class="card">
+          <div class="card-head">
+            <span class="card-head-title">Itilizatè App yo</span>
+          </div>
           <div class="filter-bar">
             <input class="filter-inp" placeholder="Chèche pa non oswa email..." style="flex:1;min-width:200px;" oninput="onUserSearch(this.value)">
             <span style="font-size:12px;color:var(--muted);" id="user-count-lbl">—</span>
@@ -264,15 +289,16 @@
               <thead>
                 <tr>
                   <th>Itilizatè</th><th>Telefòn</th><th>Kay poste</th>
-                  <th>Peman</th><th>Enskri</th><th>Statut</th><th>Aktif</th>
+                  <th>Peman</th><th>Enskri</th><th>Statut</th><th>Aktif</th><th>Efase</th>
                 </tr>
               </thead>
               <tbody id="users-tbody">
-                <tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>
+                <tr><td colspan="8"><div class="loader"><div class="spinner"></div></div></td></tr>
               </tbody>
             </table>
           </div>
         </div>
+
       </div>
     </div>
 

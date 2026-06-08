@@ -21,9 +21,13 @@ public class AdminUsersController : ControllerBase
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] string? role = null)
     {
         var query = _db.Users.AsQueryable();
+
+        if (!string.IsNullOrEmpty(role))
+            query = query.Where(u => u.Role == role);
 
         if (!string.IsNullOrEmpty(search))
             query = query.Where(u =>
@@ -36,7 +40,18 @@ public class AdminUsersController : ControllerBase
             .OrderByDescending(u => u.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(u => AuthService.MapUser(u))
+            .Select(u => new UserDto
+            {
+                Id           = u.Id,
+                Nom          = u.Nom,
+                Email        = u.Email,
+                Telefon      = u.Telefon,
+                Role         = u.Role,
+                IsActive     = u.IsActive,
+                CreatedAt    = u.CreatedAt,
+                HouseCount   = u.Houses.Count,
+                PaymentCount = u.Payments.Count
+            })
             .ToListAsync();
 
         return Ok(ApiResponse<PagedResult<UserDto>>.Ok(new PagedResult<UserDto>
@@ -65,6 +80,40 @@ public class AdminUsersController : ControllerBase
         return Ok(ApiResponse<UserDto>.Ok(
             AuthService.MapUser(user),
             user.IsActive ? "Kont aktive." : "Kont dezaktive."));
+    }
+
+    /// <summary>Efase yon itilizatè ak tout done li yo</summary>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user is null)
+            return NotFound(ApiResponse<bool>.Fail("Itilizatè pa jwenn."));
+
+        if (user.Role == "Admin")
+            return BadRequest(ApiResponse<bool>.Fail("Ou pa ka efase yon Admin."));
+
+        // Efase peman itilizatè a te fè kòm achetè
+        await _db.Payments
+            .Where(p => p.UserId == id)
+            .ExecuteDeleteAsync();
+
+        // Efase peman pou kay itilizatè a posede
+        var houseIds = await _db.Houses
+            .Where(h => h.UserId == id)
+            .Select(h => h.Id)
+            .ToListAsync();
+
+        if (houseIds.Count > 0)
+            await _db.Payments
+                .Where(p => houseIds.Contains(p.HouseId))
+                .ExecuteDeleteAsync();
+
+        // Efase itilizatè (cascade: kay, imaj kay, refresh tokens)
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+
+        return Ok(ApiResponse<bool>.Ok(true, "Itilizatè efase avèk siksè."));
     }
 
     /// <summary>Statistik global pou dashboard admin</summary>
