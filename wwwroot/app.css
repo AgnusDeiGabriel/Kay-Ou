@@ -21,6 +21,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
 
 html, body {
   height: 100%;
@@ -51,35 +52,58 @@ html, body {
 .splash-hero {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; text-align: center;
-  padding: 48px 24px 32px; flex-shrink: 0;
+  padding: 44px 28px 28px; flex-shrink: 0;
+  min-height: 220px;
 }
 
-.splash-logo { font-family: 'Cormorant Garamond', serif; font-size: 48px; font-weight: 700; color: var(--cream); letter-spacing: -1px; }
+.splash-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 58px; font-weight: 700; color: var(--cream); letter-spacing: -1px;
+}
 .splash-logo span { color: var(--orange); }
-.splash-tag { color: rgba(250,246,241,.4); font-size: 10px; letter-spacing: 4px; text-transform: uppercase; margin-top: 4px; }
+.splash-tag {
+  color: rgba(250,246,241,.4); font-size: 11px;
+  letter-spacing: 4px; text-transform: uppercase; margin-top: 5px;
+}
 
 /* Auth card */
 .auth-card {
-  background: #fff; border-radius: 32px 32px 0 0;
-  padding: 24px 24px 48px; flex: 1;
+  background: #fff; border-radius: 28px 28px 0 0;
+  padding: 8px 26px 44px; flex: 1;
   box-shadow: 0 -6px 30px rgba(0,0,0,.15);
+  display: flex; flex-direction: column;
 }
 
 /* Ti tiret anwo kat la */
 .auth-card::before {
   content: ''; display: block;
-  width: 32px; height: 4px; background: #E0D5CC;
-  border-radius: 2px; margin: 0 auto 20px;
+  width: 36px; height: 4px; background: #E0D5CC;
+  border-radius: 2px; margin: 12px auto 22px; flex-shrink: 0;
+}
+
+/* Ekran ki ba (max 700px) */
+@media (max-height: 700px) {
+  .splash-hero  { padding: 24px 28px 20px; min-height: 170px; }
+  .splash-house { width: 82px; margin-bottom: 8px; }
+  .splash-logo  { font-size: 44px; }
+  .auth-card    { padding: 6px 22px 28px; }
+  .auth-card::before { margin: 10px auto 16px; }
+  .form-grp     { margin-bottom: 12px; }
+  .form-inp     { padding: 13px 16px; }
+  .btn-auth     { padding: 14px; font-size: 16px; }
+  .social-btns  { margin-bottom: 12px; }
+  .social-btn   { width: 48px; height: 48px; }
+  .social-divider { margin-bottom: 12px; }
 }
 
 .auth-body { }
-.form-grp { margin-bottom: 14px; }
-.form-lbl { display: block; font-size: 12px; font-weight: 600; color: var(--brown); margin-bottom: 6px; }
+.form-grp { margin-bottom: 16px; }
+.form-lbl { display: block; font-size: 14px; font-weight: 600; color: var(--brown); margin-bottom: 8px; }
 .form-inp {
-  width: 100%; padding: 14px 15px;
+  width: 100%; padding: 16px 18px;
   background: #F8F4F1; border: 1.5px solid transparent;
-  border-radius: 12px; font-family: 'DM Sans', sans-serif;
-  font-size: 15px; color: var(--brown); outline: none;
+  border-radius: 14px; font-family: 'DM Sans', sans-serif;
+  font-size: 16px; color: var(--brown); outline: none;
   transition: border-color .2s, background .2s;
 }
 .form-inp:focus { border-color: var(--orange); background: #fff; }
@@ -88,11 +112,11 @@ html, body {
 
 /* Gradient button */
 .btn-auth {
-  width: 100%; padding: 15px;
+  width: 100%; padding: 17px;
   background: linear-gradient(135deg, #E8622A 0%, #B8420E 100%);
-  color: #fff; border: none; border-radius: 14px;
-  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
-  cursor: pointer; margin-top: 6px;
+  color: #fff; border: none; border-radius: 16px;
+  font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 600;
+  cursor: pointer; margin-top: 8px;
   box-shadow: 0 5px 16px rgba(184,66,14,.35);
   transition: opacity .2s, transform .1s;
 }
@@ -102,15 +126,15 @@ html, body {
 .btn-main { width: 100%; padding: 15px; background: var(--orange); color: #fff; border: none; border-radius: 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
 .btn-main.dark { background: var(--brown); }
 
-.auth-switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--muted); }
-.auth-switch a { color: var(--orange); cursor: pointer; font-weight: 500; }
+.auth-switch { text-align: center; margin-top: 20px; font-size: 15px; color: var(--muted); }
+.auth-switch a { color: var(--orange); cursor: pointer; font-weight: 600; }
 .form-error { font-size: 12px; color: var(--red); margin-top: 5px; display: none; }
 
 /* ── SOCIAL LOGIN ─────────────────────────────────────────── */
-.social-btns { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
+.social-btns { display: flex; justify-content: center; gap: 14px; margin-bottom: 18px; }
 .social-btn {
   display: flex; align-items: center; justify-content: center;
-  width: 48px; height: 48px; border-radius: 14px;
+  width: 54px; height: 54px; border-radius: 16px;
   border: 1.5px solid var(--border); background: #fff;
   cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.07);
   transition: transform .12s, box-shadow .12s;
@@ -131,9 +155,17 @@ html, body {
 /* Desktop: santre */
 @media (min-width: 600px) {
   #splash { align-items: center; justify-content: center; }
-  .splash-scroll { width: 100%; max-width: 420px; height: auto; min-height: 0; }
-  .auth-card { flex: none; border-radius: 0; }
+  .splash-scroll {
+    width: 100%; max-width: 430px;
+    height: auto; min-height: 0; flex-shrink: 0;
+    border-radius: 28px; overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,.4);
+  }
+  .auth-card { flex: none; border-radius: 0; padding-bottom: 36px; display: block; }
   .auth-card::before { display: none; }
+  @media (max-height: 700px) {
+    .splash-hero { padding: 28px 28px 20px; }
+  }
 }
 
 /* ── AUTH (ansyen — kenbe pou referans) ──────────────────── */

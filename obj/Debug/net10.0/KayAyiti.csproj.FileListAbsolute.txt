@@ -344,8 +344,8 @@ C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Google.Apis.Auth.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Google.Apis.Core.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\System.Management.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\runtimes\win\lib\net7.0\System.Management.dll
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-050cnb6ofr-050cnb6ofr.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-w7dmi4gp4f-w7dmi4gp4f.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-t2cv0wy29z-t2cv0wy29z.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\g24apfop1e-{0}-04qg67yue9-04qg67yue9.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\zmlnsuj932-{0}-0bcpg1z38g-0bcpg1z38g.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\g24apfop1e-{0}-fivm80bmdm-fivm80bmdm.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\zmlnsuj932-{0}-yngvuzebbp-yngvuzebbp.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-jzbnzu5tgp-jzbnzu5tgp.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-k01n9lxfln-k01n9lxfln.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-8wg1n59qh1-8wg1n59qh1.gz
