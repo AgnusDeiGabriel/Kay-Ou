@@ -223,12 +223,13 @@ public class AuthService : IAuthService
 
     public static UserDto MapUser(User u) => new()
     {
-        Id = u.Id,
-        Nom = u.Nom,
-        Email = u.Email,
-        Telefon = u.Telefon,
-        Role = u.Role,
-        IsActive = u.IsActive,
-        CreatedAt = u.CreatedAt
+        Id        = u.Id,
+        Nom       = u.Nom,
+        Email     = u.Email,
+        Telefon   = u.Telefon,
+        Role      = u.Role,
+        IsActive  = u.IsActive,
+        CreatedAt = u.CreatedAt,
+        AvatarUrl = u.AvatarUrl
     };
 }

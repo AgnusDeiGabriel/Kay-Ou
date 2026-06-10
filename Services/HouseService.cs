@@ -14,6 +14,7 @@ public interface IHouseService
     Task<ApiResponse<bool>> DeleteAsync(int id, int userId, string userRole);
     Task<ApiResponse<HouseDto>> AdminActionAsync(int id, AdminHouseActionRequest req, int adminId);
     Task<ApiResponse<List<string>>> UploadImagesAsync(int houseId, IFormFileCollection files, int userId);
+    Task<ApiResponse<List<HouseDto>>> GetMyHousesAsync(int userId);
 }
 
 public class HouseService : IHouseService
@@ -252,6 +253,22 @@ public class HouseService : IHouseService
 
         await _db.SaveChangesAsync();
         return ApiResponse<List<string>>.Ok(urls, $"{urls.Count} imaj uploade avèk siksè.");
+    }
+
+    public async Task<ApiResponse<List<HouseDto>>> GetMyHousesAsync(int userId)
+    {
+        var houses = await _db.Houses
+            .Include(h => h.User)
+            .Include(h => h.Images)
+            .Where(h => h.UserId == userId)
+            .OrderByDescending(h => h.CreatedAt)
+            .ToListAsync();
+
+        var items = new List<HouseDto>();
+        foreach (var h in houses)
+            items.Add(await MapHouseAsync(h, userId, isAdmin: false));
+
+        return ApiResponse<List<HouseDto>>.Ok(items);
     }
 
     // ─── Mapper ──────────────────────────────────────────────────────────────

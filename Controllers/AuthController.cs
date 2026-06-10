@@ -2,10 +2,13 @@ using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using KayAyiti.Data;
 using KayAyiti.DTOs;
 using KayAyiti.Services;
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 
 namespace KayAyiti.Controllers;
 
@@ -14,8 +17,15 @@ namespace KayAyiti.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _auth;
+    private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment _env;
 
-    public AuthController(IAuthService auth) => _auth = auth;
+    public AuthController(IAuthService auth, AppDbContext db, IWebHostEnvironment env)
+    {
+        _auth = auth;
+        _db   = db;
+        _env  = env;
+    }
 
     /// <summary>Kreye kont nouvo itilizatè</summary>
     [HttpPost("register")]
@@ -169,16 +179,97 @@ public class AuthController : ControllerBase
         return Redirect($"/?ka_token={tokenEnc}&ka_refresh={refreshEnc}&ka_user={userJson}");
     }
 
-    /// <summary>Wè pwofil itilizatè konekte a</summary>
+    /// <summary>Wè pwofil konplè itilizatè konekte a (avèk stats)</summary>
     [HttpGet("me")]
     [Authorize]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-        var nom = User.FindFirst(ClaimTypes.Name)?.Value;
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var user   = await _db.Users.FindAsync(userId);
+        if (user is null) return Unauthorized();
 
-        return Ok(ApiResponse<object>.Ok(new { userId, email, nom, role }));
+        var houseCount   = await _db.Houses.CountAsync(h => h.UserId == userId);
+        var paymentCount = await _db.Payments.CountAsync(p => p.UserId == userId);
+
+        var dto = AuthService.MapUser(user);
+        dto.HouseCount   = houseCount;
+        dto.PaymentCount = paymentCount;
+
+        return Ok(ApiResponse<UserDto>.Ok(dto));
+    }
+
+    /// <summary>Modifye non ak telefòn</summary>
+    [HttpPatch("profile")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest req)
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var user   = await _db.Users.FindAsync(userId);
+        if (user is null) return NotFound(ApiResponse<object>.Fail("Itilizatè pa jwenn."));
+
+        user.Nom     = req.Nom.Trim();
+        user.Telefon = req.Telefon.Trim();
+        await _db.SaveChangesAsync();
+
+        return Ok(ApiResponse<UserDto>.Ok(AuthService.MapUser(user), "Pwofil ajou avèk siksè!"));
+    }
+
+    /// <summary>Upload foto pwofil</summary>
+    [HttpPost("avatar")]
+    [Authorize]
+    public async Task<IActionResult> UploadAvatar(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(ApiResponse<object>.Fail("Chwazi yon imaj."));
+
+        var allowed = new[] { "image/jpeg", "image/jpg", "image/png", "image/webp" };
+        if (!allowed.Contains(file.ContentType.ToLower()))
+            return BadRequest(ApiResponse<object>.Fail("Sèlman JPEG, PNG ak WebP aksepte."));
+
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(ApiResponse<object>.Fail("Imaj pa dwe depase 5MB."));
+
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var user   = await _db.Users.FindAsync(userId);
+        if (user is null) return NotFound(ApiResponse<object>.Fail("Itilizatè pa jwenn."));
+
+        // Efase ansyen avatar si li egziste
+        if (!string.IsNullOrEmpty(user.AvatarUrl))
+        {
+            var old = Path.Combine(_env.WebRootPath, user.AvatarUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(old)) System.IO.File.Delete(old);
+        }
+
+        var dir = Path.Combine(_env.WebRootPath, "uploads", "avatars");
+        Directory.CreateDirectory(dir);
+        var ext      = Path.GetExtension(file.FileName).ToLower();
+        var fileName = $"{userId}_{Guid.NewGuid():N}{ext}";
+        var path     = Path.Combine(dir, fileName);
+
+        await using (var stream = new FileStream(path, FileMode.Create))
+            await file.CopyToAsync(stream);
+
+        user.AvatarUrl = $"/uploads/avatars/{fileName}";
+        await _db.SaveChangesAsync();
+
+        return Ok(ApiResponse<object>.Ok(new { avatarUrl = user.AvatarUrl }, "Foto pwofil ajou!"));
+    }
+
+    /// <summary>Chanje modpas</summary>
+    [HttpPatch("password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var user   = await _db.Users.FindAsync(userId);
+        if (user is null) return NotFound(ApiResponse<object>.Fail("Itilizatè pa jwenn."));
+
+        if (!BCrypt.Net.BCrypt.Verify(req.OldPassword, user.PasswordHash))
+            return BadRequest(ApiResponse<object>.Fail("Ansyen modpas ou a pa kòrèk."));
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+        await _db.SaveChangesAsync();
+
+        return Ok(ApiResponse<object>.Ok(new { }, "Modpas chanje avèk siksè!"));
     }
 }

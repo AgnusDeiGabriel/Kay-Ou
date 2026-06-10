@@ -3,21 +3,21 @@ const API = {
   BASE_URL: window.location.origin + '/api',
 
   // ── Token management ─────────────────────────────────────
-  getToken()        { return localStorage.getItem('ka_token'); },
-  getRefresh()      { return localStorage.getItem('ka_refresh'); },
-  getUser()         { const u = localStorage.getItem('ka_user'); return u ? JSON.parse(u) : null; },
+  getToken()        { return sessionStorage.getItem('ka_token'); },
+  getRefresh()      { return sessionStorage.getItem('ka_refresh'); },
+  getUser()         { const u = sessionStorage.getItem('ka_user'); return u ? JSON.parse(u) : null; },
   isAdmin()         { const u = this.getUser(); return u?.role === 'Admin'; },
   isLoggedIn()      { return !!this.getToken(); },
 
   saveAuth(data) {
-    localStorage.setItem('ka_token',   data.accessToken);
-    localStorage.setItem('ka_refresh', data.refreshToken);
-    localStorage.setItem('ka_user',    JSON.stringify(data.user));
+    sessionStorage.setItem('ka_token',   data.accessToken);
+    sessionStorage.setItem('ka_refresh', data.refreshToken);
+    sessionStorage.setItem('ka_user',    JSON.stringify(data.user));
   },
   clearAuth() {
-    localStorage.removeItem('ka_token');
-    localStorage.removeItem('ka_refresh');
-    localStorage.removeItem('ka_user');
+    sessionStorage.removeItem('ka_token');
+    sessionStorage.removeItem('ka_refresh');
+    sessionStorage.removeItem('ka_user');
   },
 
   // ── Core fetch wrapper ────────────────────────────────────
@@ -62,9 +62,17 @@ const API = {
 
   // ── AUTH ─────────────────────────────────────────────────
   auth: {
-    register: (d)  => API.req('POST', '/auth/register', d),
-    login:    (d)  => API.req('POST', '/auth/login',    d),
-    logout:   (rt) => API.req('POST', '/auth/logout',   { refreshToken: rt }),
+    register:       (d)  => API.req('POST',  '/auth/register', d),
+    login:          (d)  => API.req('POST',  '/auth/login',    d),
+    logout:         (rt) => API.req('POST',  '/auth/logout',   { refreshToken: rt }),
+    me:             ()   => API.req('GET',   '/auth/me'),
+    updateProfile:  (d)  => API.req('PATCH', '/auth/profile',  d),
+    changePassword: (d)  => API.req('PATCH', '/auth/password', d),
+    uploadAvatar(file) {
+      const fd = new FormData();
+      fd.append('file', file);
+      return API.req('POST', '/auth/avatar', fd, true);
+    },
   },
 
   // ── HOUSES ───────────────────────────────────────────────
@@ -75,6 +83,7 @@ const API = {
     update:  (id, d)       => API.req('PUT',    `/houses/${id}`, d),
     delete:  (id)          => API.req('DELETE', `/houses/${id}`),
     review:  (id, d)       => API.req('PATCH',  `/houses/${id}/review`, d),
+    my:      ()            => API.req('GET',    '/houses/my'),
     adminAll:(params = {}) => API.req('GET',    '/houses/admin/all?' + new URLSearchParams(params)),
 
     uploadImages(houseId, files) {
@@ -96,6 +105,22 @@ const API = {
     mine:    ()          => API.req('GET',   '/payments/my'),
     adminAll:(p = {})    => API.req('GET',   '/payments/admin/all?' + new URLSearchParams(p)),
     review:  (id, d)     => API.req('PATCH', `/payments/${id}/review`, d),
+  },
+
+  // ── CHAT ─────────────────────────────────────────────────
+  chat: {
+    getMessages: (houseId, withUserId) => {
+      const q = withUserId ? `?with=${withUserId}` : '';
+      return API.req('GET', `/chat/${houseId}${q}`);
+    },
+    sendMessage: (houseId, content, withUserId) => {
+      const q = withUserId ? `?with=${withUserId}` : '';
+      return API.req('POST', `/chat/${houseId}${q}`, { content });
+    },
+    conversations: () => API.req('GET', '/chat/conversations'),
+    editMessage:   (houseId, msgId, content) => API.req('PATCH',  `/chat/${houseId}/${msgId}`,      { content }),
+    deleteMessage: (houseId, msgId)          => API.req('DELETE', `/chat/${houseId}/${msgId}`),
+    pinMessage:    (houseId, msgId)          => API.req('PATCH',  `/chat/${houseId}/${msgId}/pin`),
   },
 
   // ── ADMIN ─────────────────────────────────────────────────

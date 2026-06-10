@@ -26,6 +26,8 @@ public class User
     public string? EmailVerificationToken { get; set; }
     public DateTime? EmailVerificationExpiry { get; set; }
 
+    public string? AvatarUrl { get; set; }
+
     public string? GoogleId { get; set; }
     public string? FacebookId { get; set; }
     public string? AppleId { get; set; }

@@ -63,6 +63,7 @@ public class UserDto
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? AvatarUrl { get; set; }
     public int? HouseCount { get; set; }
     public int? PaymentCount { get; set; }
 }
@@ -166,6 +167,72 @@ public class AdminPaymentActionRequest
     public string Action { get; set; } = string.Empty;
 
     public string? NoteAdmin { get; set; }
+}
+
+// ─── PROFILE ─────────────────────────────────────────────────────────────────
+
+public class UpdateProfileRequest
+{
+    [Required(ErrorMessage = "Non obligatwa")]
+    [MaxLength(100)]
+    public string Nom { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Telefòn obligatwa")]
+    [MaxLength(20)]
+    public string Telefon { get; set; } = string.Empty;
+}
+
+public class ChangePasswordRequest
+{
+    [Required(ErrorMessage = "Ansyen modpas obligatwa")]
+    public string OldPassword { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Nouvo modpas obligatwa")]
+    [MinLength(6, ErrorMessage = "Modpas dwe gen omwen 6 karaktè")]
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+// ─── CHAT ────────────────────────────────────────────────────────────────────
+
+public class SendMessageRequest
+{
+    [Required]
+    [MaxLength(1000)]
+    public string Content { get; set; } = "";
+}
+
+public class MessageDto
+{
+    public int Id { get; set; }
+    public string Content { get; set; } = "";
+    public DateTime SentAt { get; set; }
+    public bool IsRead { get; set; }
+    public bool IsMine { get; set; }
+    public string SenderNom { get; set; } = "";
+    public bool IsEdited { get; set; }
+    public DateTime? EditedAt { get; set; }
+    public bool IsPinned { get; set; }
+}
+
+public class EditMessageRequest
+{
+    [Required]
+    [MaxLength(1000)]
+    public string Content { get; set; } = "";
+}
+
+public class ConversationDto
+{
+    public int HouseId { get; set; }
+    public string HouseTitre { get; set; } = "";
+    public int OtherUserId { get; set; }
+    public string OtherUserNom { get; set; } = "";
+    public string? OtherUserAvatarUrl { get; set; }
+    public string LastMessage { get; set; } = "";
+    public DateTime LastMessageAt { get; set; }
+    public int UnreadCount { get; set; }
+    public bool IsLastMessageMine { get; set; }
+    public bool IsCurrentUserOwner { get; set; }
 }
 
 // ─── PAGINATION ──────────────────────────────────────────────────────────────

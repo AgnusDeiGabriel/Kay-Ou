@@ -80,6 +80,15 @@ public class HousesController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    /// <summary>Kay aktyèl itilizatè a (tout statut)</summary>
+    [HttpGet("my")]
+    [Authorize]
+    public async Task<IActionResult> GetMy()
+    {
+        var result = await _houses.GetMyHousesAsync(CurrentUserId!.Value);
+        return Ok(result);
+    }
+
     // ─── Admin Endpoints ─────────────────────────────────────────────────────
 
     /// <summary>Admin: wè tout kay (nenpòt statut)</summary>

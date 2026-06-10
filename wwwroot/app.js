@@ -58,13 +58,13 @@ function showAuth() {
 }
 
 function hideAuth(animated = true) {
+  startUnreadPoll();
   if (!animated) {
     goTo('home');
     loadHouses();
     return;
   }
   const sp = $('splash');
-  // Kache splash — li glise desann pandan home parèt
   Object.assign(sp.style, {
     position: 'fixed', inset: '0', zIndex: '1000',
     display: 'flex', flexDirection: 'column',
@@ -117,6 +117,7 @@ function initSplash() {
     if (API.isAdmin()) { window.location.href = '/admin'; return; }
     updateHomeUser();
     hideAuth(false);
+    // hideAuth rele startUnreadPoll() — pa bezwen rele ankò
   }
   // Si pa konekte: splash rete aktif (premye paj)
 }
@@ -224,11 +225,378 @@ async function doLogin() {
   }
 }
 
+// ── CHAT ─────────────────────────────────────────────────────
+
+// withUserId: non-null sèlman lè pwopriyetè a kap reponn yon vizitè (?with=visitorId)
+// otherNom:   non moun k ap chat avèk ou (pou header la)
+const ChatState = { houseId: null, ownerId: null, withUserId: null, otherNom: null, fromConv: false, pollTimer: null };
+const EditState  = { msgId: null };
+const CtxMenu    = { msgId: null, isMine: false, isPinned: false, content: '' };
+
+function openChat() {
+  if (!API.isLoggedIn()) { showAuth(); return; }
+  const h = State.selectedHouse;
+  if (!h) return;
+  const me = API.getUser();
+  if (me && h.owner && me.id === h.owner.id) {
+    toast('Se pwòp kay ou — ou pa ka chat ak ou menm.', 'info');
+    return;
+  }
+  ChatState.houseId  = h.id;
+  ChatState.ownerId  = h.owner?.id ?? null;
+  ChatState.withUserId = null;   // vizitè — pa bezwen ?with
+  ChatState.otherNom   = h.owner?.nom ?? null;
+  goTo('chat');
+  loadChatMessages();
+  startChatPoll();
+}
+
+function closeChat() {
+  stopChatPoll();
+  cancelEditMessage();
+  hideCtxMenu();
+  hidePinBar();
+  const backTo = ChatState.fromConv ? 'conversations' : 'detail';
+  ChatState.houseId    = null;
+  ChatState.ownerId    = null;
+  ChatState.withUserId = null;
+  ChatState.otherNom   = null;
+  ChatState.fromConv   = false;
+  goTo(backTo);
+}
+
+function startEditMessage(id, content) {
+  EditState.msgId = id;
+  const input = $('chat-input');
+  input.value = content;
+  input.focus();
+  input.setSelectionRange(content.length, content.length);
+  const bar = $('chat-edit-bar');
+  bar.classList.add('active');
+  $('chat-edit-preview').textContent = content.length > 50 ? content.slice(0, 50) + '…' : content;
+}
+
+function cancelEditMessage() {
+  EditState.msgId = null;
+  const bar = $('chat-edit-bar');
+  if (bar) bar.classList.remove('active');
+  const input = $('chat-input');
+  if (input) input.value = '';
+}
+
+async function loadChatMessages() {
+  if (!ChatState.houseId) return;
+  try {
+    const res = await API.chat.getMessages(ChatState.houseId, ChatState.withUserId);
+    if (!res.success) return;
+    const { messages, ownerNom, houseTitre, pinnedMessage } = res.data;
+    const displayNom = ChatState.otherNom || ownerNom;
+    $('chat-owner-av').textContent   = chatInitials(displayNom);
+    $('chat-owner-name').textContent = displayNom;
+    $('chat-house-name').textContent = houseTitre;
+    renderChatMessages(messages);
+    if (pinnedMessage) showPinBar(pinnedMessage.content);
+    else hidePinBar();
+  } catch {}
+}
+
+function renderChatMessages(messages) {
+  const box = $('chat-messages');
+  if (!messages || messages.length === 0) {
+    box.innerHTML = `
+      <div class="chat-empty">
+        <div class="chat-empty-icon">💬</div>
+        <div class="chat-empty-txt">Kòmanse konvèsasyon ak pwopriyetè a</div>
+      </div>`;
+    return;
+  }
+  box.innerHTML = messages.map(m => `
+    <div class="chat-bubble ${m.isMine ? 'chat-bubble--mine' : 'chat-bubble--theirs'}${m.isPinned ? ' bubble-pinned' : ''}"
+         data-id="${m.id}"
+         data-mine="${m.isMine}"
+         data-pinned="${m.isPinned}"
+         data-content="${escHtml(m.content)}"
+         oncontextmenu="showMsgMenu(event,this)">
+      <div class="bubble-text">${escHtml(m.content)}</div>
+      <div class="bubble-footer">
+        ${m.isPinned ? '<span class="bubble-pin-icon">📌</span>' : ''}
+        ${m.isEdited ? '<span class="bubble-edited">modifye</span>' : ''}
+        <span class="bubble-time">${fmtMsgTime(m.sentAt)}</span>
+      </div>
+    </div>`).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendChatMessage() {
+  const input = $('chat-input');
+  const text  = input.value.trim();
+  if (!text || !ChatState.houseId) return;
+  const btn = $('chat-send-btn');
+  btn.disabled = true;
+
+  if (EditState.msgId) {
+    // Mode modifikasyon
+    const msgId = EditState.msgId;
+    try {
+      await API.chat.editMessage(ChatState.houseId, msgId, text);
+      cancelEditMessage();
+      await loadChatMessages();
+    } catch {
+      toast('Modifikasyon pa voye. Eseye ankò.', 'err');
+    } finally {
+      btn.disabled = false;
+      input.focus();
+    }
+  } else {
+    // Mesaj nòmal
+    input.value = '';
+    try {
+      await API.chat.sendMessage(ChatState.houseId, text, ChatState.withUserId);
+      await loadChatMessages();
+    } catch {
+      toast('Mesaj pa voye. Eseye ankò.', 'err');
+      input.value = text;
+    } finally {
+      btn.disabled = false;
+      input.focus();
+    }
+  }
+}
+
+// ── CONTEXT MENU ─────────────────────────────────────────────
+
+function showMsgMenu(e, el) {
+  e.preventDefault();
+  hideCtxMenu();
+  CtxMenu.msgId    = +el.dataset.id;
+  CtxMenu.isMine   = el.dataset.mine   === 'true';
+  CtxMenu.isPinned = el.dataset.pinned === 'true';
+  CtxMenu.content  = el.dataset.content;
+
+  const menu = $('msg-ctx-menu');
+  let html = '';
+  if (CtxMenu.isMine) {
+    html += `<div class="ctx-item" onclick="ctxEdit()"><span class="ctx-icon">✏️</span>Modifye</div>`;
+    html += `<div class="ctx-sep"></div>`;
+  }
+  html += `<div class="ctx-item" onclick="ctxPin()"><span class="ctx-icon">📌</span>${CtxMenu.isPinned ? 'Dezepingle' : 'Epingle'}</div>`;
+  if (CtxMenu.isMine) {
+    html += `<div class="ctx-sep"></div>`;
+    html += `<div class="ctx-item ctx-danger" onclick="ctxDelete()"><span class="ctx-icon">🗑️</span>Efase</div>`;
+  }
+  menu.innerHTML = html;
+
+  // Pozisyon — evite depase bò ekran
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const mw = 185, mh = menu.childElementCount * 44 + 12;
+  let x = e.clientX, y = e.clientY;
+  if (x + mw > vw - 8) x = vw - mw - 8;
+  if (y + mh > vh - 8) y = vh - mh - 8;
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+  menu.classList.add('open');
+}
+
+function hideCtxMenu() {
+  $('msg-ctx-menu')?.classList.remove('open');
+}
+
+function ctxEdit() {
+  hideCtxMenu();
+  startEditMessage(CtxMenu.msgId, CtxMenu.content);
+}
+
+async function ctxDelete() {
+  hideCtxMenu();
+  if (!ChatState.houseId || !CtxMenu.msgId) return;
+  try {
+    await API.chat.deleteMessage(ChatState.houseId, CtxMenu.msgId);
+    await loadChatMessages();
+  } catch {
+    toast('Efasman echwe. Eseye ankò.', 'err');
+  }
+}
+
+async function ctxPin() {
+  hideCtxMenu();
+  if (!ChatState.houseId || !CtxMenu.msgId) return;
+  try {
+    const res = await API.chat.pinMessage(ChatState.houseId, CtxMenu.msgId);
+    await loadChatMessages();
+    toast(res.data?.isPinned ? '📌 Mesaj epingle' : 'Mesaj dezepingle', 'ok', 2000);
+  } catch {
+    toast('Epinglej echwe. Eseye ankò.', 'err');
+  }
+}
+
+async function ctxPinFromBar() {
+  // Jwenn mesaj epingle a epi dezepingle l
+  if (!ChatState.houseId) return;
+  try {
+    const res = await API.chat.getMessages(ChatState.houseId, ChatState.withUserId);
+    const pinned = (res.data?.messages || []).find(m => m.isPinned);
+    if (pinned) {
+      await API.chat.pinMessage(ChatState.houseId, pinned.id);
+      await loadChatMessages();
+    }
+  } catch {
+    toast('Dezepinglej echwe.', 'err');
+  }
+}
+
+function showPinBar(content) {
+  const bar = $('chat-pin-bar');
+  if (!bar) return;
+  $('chat-pin-text').textContent = content;
+  bar.classList.add('active');
+}
+function hidePinBar() {
+  $('chat-pin-bar')?.classList.remove('active');
+}
+
+function startChatPoll() {
+  stopChatPoll();
+  ChatState.pollTimer = setInterval(loadChatMessages, 5000);
+}
+function stopChatPoll() {
+  if (ChatState.pollTimer) { clearInterval(ChatState.pollTimer); ChatState.pollTimer = null; }
+}
+
+function chatInitials(name) {
+  return (name || '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+function fmtMsgTime(iso) {
+  return new Date(iso).toLocaleTimeString('fr', { hour: '2-digit', minute: '2-digit' });
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── CONVERSATIONS ────────────────────────────────────────────
+
+let _unreadPollTimer = null;
+
+async function openConversations() {
+  if (!API.isLoggedIn()) { showAuth(); return; }
+  goTo('conversations');
+  $('conv-list').innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  try {
+    const res = await API.chat.conversations();
+    renderConversations(res.data || []);
+  } catch {
+    $('conv-list').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erè chajman</div></div>';
+  }
+}
+
+function renderConversations(list) {
+  if (!list.length) {
+    $('conv-list').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">💬</div>
+        <div class="empty-title">Pa gen mesaj</div>
+        <div class="empty-sub">Konvèsasyon ou yo ap parèt isit.</div>
+      </div>`;
+    return;
+  }
+
+  $('conv-list').innerHTML = list.map(c => {
+    const initials  = c.otherUserNom.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    const timeStr   = fmtConvTime(c.lastMessageAt);
+    const hasUnread = c.unreadCount > 0;
+    const avatarHtml = c.otherUserAvatarUrl
+      ? `<img src="${c.otherUserAvatarUrl}" alt="${escHtml(c.otherUserNom)}">`
+      : initials;
+    const prefix = c.isLastMessageMine ? '<span class="conv-sent-prefix">Mwen: </span>' : '';
+
+    return `
+      <div class="conv-item"
+           data-hid="${c.houseId}"
+           data-uid="${c.otherUserId}"
+           data-nom="${escHtml(c.otherUserNom)}"
+           data-owner="${c.isCurrentUserOwner ? 'true' : 'false'}"
+           onclick="openChatFromConv(this)">
+        <div class="conv-av">${avatarHtml}</div>
+        <div class="conv-body">
+          <div class="conv-top">
+            <span class="conv-name">${escHtml(c.otherUserNom)}</span>
+            <span class="conv-time">${timeStr}</span>
+          </div>
+          <div class="conv-bot">
+            <span class="conv-preview${hasUnread ? ' unread' : ''}">${prefix}${escHtml(c.lastMessage)}</span>
+            ${hasUnread ? `<span class="conv-unread-badge">${c.unreadCount}</span>` : ''}
+          </div>
+          <div class="conv-house">🏠 ${escHtml(c.houseTitre)}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openChatFromConv(el) {
+  openChatFromConversation(
+    +el.dataset.hid,
+    +el.dataset.uid,
+    el.dataset.nom,
+    el.dataset.owner === 'true'
+  );
+}
+
+function openChatFromConversation(houseId, otherUserId, otherNom, isOwner) {
+  ChatState.houseId    = houseId;
+  ChatState.ownerId    = isOwner ? (API.getUser()?.id ?? null) : otherUserId;
+  ChatState.withUserId = isOwner ? otherUserId : null;
+  ChatState.otherNom   = otherNom || null;
+  ChatState.fromConv   = true;
+  goTo('chat');
+  loadChatMessages();
+  startChatPoll();
+}
+
+function fmtConvTime(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return d.toLocaleTimeString('fr', { hour:'2-digit', minute:'2-digit' });
+  if (diffDays === 1) return 'Yè';
+  if (diffDays < 7)  return diffDays + 'j';
+  return d.toLocaleDateString('fr', { day:'numeric', month:'short' });
+}
+
+async function updateUnreadBadge() {
+  if (!API.isLoggedIn()) return;
+  try {
+    const res = await API.chat.conversations();
+    const total = (res.data || []).reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+    const badge = $('msg-badge');
+    if (!badge) return;
+    if (total > 0) {
+      badge.textContent = total > 99 ? '99+' : total;
+      badge.classList.add('visible');
+    } else {
+      badge.classList.remove('visible');
+    }
+  } catch {}
+}
+
+function startUnreadPoll() {
+  stopUnreadPoll();
+  updateUnreadBadge();
+  _unreadPollTimer = setInterval(updateUnreadBadge, 30000);
+}
+function stopUnreadPoll() {
+  if (_unreadPollTimer) { clearInterval(_unreadPollTimer); _unreadPollTimer = null; }
+}
+
+// ─────────────────────────────────────────────────────────────
+
 async function doLogout() {
   try {
     await API.auth.logout(API.getRefresh());
   } catch {}
   API.clearAuth();
+  stopChatPoll();
+  stopUnreadPoll();
+  $('msg-badge')?.classList.remove('visible');
   State.houses = [];
   goTo('home');
   loadHouses();
@@ -238,11 +606,31 @@ async function doLogout() {
 function updateHomeUser() {
   const user = API.getUser();
   if (!user) return;
-  const initials = user.nom.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
-  $('home-avatar').textContent  = initials;
-  $('profile-av').textContent   = initials;
-  $('profile-name').textContent = user.nom;
-  $('profile-email').textContent= user.email;
+  const ini = user.nom.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+  if (user.avatarUrl) {
+    $('home-avatar').innerHTML = `<img src="${user.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  } else {
+    $('home-avatar').textContent = ini;
+  }
+  renderAvatarEl($('profile-av'), user.avatarUrl, user.nom);
+  $('profile-name').textContent  = user.nom;
+  $('profile-email').textContent = user.email;
+}
+
+async function loadProfileStats() {
+  try {
+    const res  = await API.auth.me();
+    const user = res.data;
+    // Mete ajou localStorage avèk done frèch
+    API.saveAuth({ accessToken: API.getToken(), refreshToken: API.getRefresh(), user });
+    updateHomeUser();
+    // Stats
+    $('pf-stat-houses').textContent   = user.houseCount   ?? 0;
+    $('pf-stat-payments').textContent = user.paymentCount ?? 0;
+    const yr = new Date(user.createdAt).getFullYear();
+    $('pf-stat-since').textContent    = yr;
+    // Badge verifye (kache si pa verifye — pa gen champ nan DTO, montre pa defò)
+  } catch {}
 }
 
 
@@ -288,29 +676,36 @@ function renderHouses(list) {
   }
 
   $('listings-container').innerHTML = list.map(h => {
-    const img = h.images && h.images[0]
-      ? `<img src="${API.BASE_URL.replace('/api','')}${h.images[0]}" alt="${h.titre}">`
-      : `<div class="card-img-placeholder">${h.type === 'Lwe' ? '🏢' : '🏡'}</div>`;
+    const imgSrc = h.images && h.images[0]
+      ? `${API.BASE_URL.replace('/api','')}${h.images[0]}`
+      : null;
     const priceFmt = h.type === 'Lwe'
       ? `$${h.prix.toLocaleString()} <span>/mwa</span>`
       : `$${h.prix.toLocaleString()} <span>USD</span>`;
+    const bg = h.type === 'Lwe'
+      ? 'linear-gradient(135deg,#D4E8C9,#9FC98A)'
+      : 'linear-gradient(135deg,#E8D5C4,#C9A98A)';
 
     return `
       <div class="house-card" onclick="openDetail(${h.id})">
-        <div class="card-img" style="background:${h.type==='Lwe'?'linear-gradient(135deg,#D4E8C9,#9FC98A)':'linear-gradient(135deg,#E8D5C4,#C9A98A)'}">
-          ${img}
+        <div class="card-img" style="background:${bg}">
+          ${imgSrc
+            ? `<img src="${imgSrc}" alt="${h.titre}" loading="lazy">`
+            : `<div class="card-img-placeholder">${h.type === 'Lwe' ? '🏢' : '🏡'}</div>`}
           <span class="card-badge badge-${h.type.toLowerCase()}">${h.type === 'Vann' ? 'Pou Vann' : 'Pou Lwe'}</span>
           ${h.statut === 'Approved' ? '<span class="badge-verified">✓ Verifye</span>' : ''}
-        </div>
-        <div class="card-body">
-          <div class="card-title">${h.titre}</div>
-          <div class="card-zone">📍 ${h.zone}</div>
-          <div class="card-price">${priceFmt}</div>
-          <div class="card-stats">
-            <div class="card-stat"><b>${h.chambres}</b> Chanm</div>
-            <div class="card-stat"><b>${h.beny}</b> Beny</div>
-            <div class="card-stat"><b>${h.superficie}</b> m²</div>
+          <div class="card-overlay">
+            <div class="card-title">${h.titre}</div>
+            <div class="card-zone-price">
+              <span class="card-zone">📍 ${h.zone}</span>
+              <span class="card-price">${priceFmt}</span>
+            </div>
           </div>
+        </div>
+        <div class="card-stats-row">
+          <div class="card-stat-item"><b>${h.chambres}</b>Chanm</div>
+          <div class="card-stat-item"><b>${h.beny}</b>Beny</div>
+          <div class="card-stat-item"><b>${h.superficie}</b>m²</div>
         </div>
       </div>`;
   }).join('');
@@ -557,6 +952,46 @@ async function loadMyPayments() {
 }
 
 
+async function openMyHouses() {
+  goTo('my-houses');
+  const list = $('my-houses-list');
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  try {
+    const res = await API.houses.my();
+    const houses = res.data;
+    if (!houses.length) {
+      list.innerHTML = `
+        <div class="empty-state" style="padding:60px 20px;text-align:center;">
+          <div style="font-size:44px;">🏠</div>
+          <div style="margin-top:12px;font-size:14px;color:var(--muted);">Ou poko poste okenn kay.</div>
+        </div>`;
+      return;
+    }
+    list.innerHTML = houses.map(h => {
+      const img = h.images?.[0]?.imageUrl
+        ? `<img src="${h.images[0].imageUrl}" class="mh-img">`
+        : `<div class="mh-img mh-img--placeholder">🏠</div>`;
+      const statusClass = { Pending:'pending', Approved:'approved', Rejected:'rejected' }[h.statut] ?? 'pending';
+      const statusLabel = { Pending:'⏳ Annatant', Approved:'✅ Apwouve', Rejected:'❌ Rejte' }[h.statut] ?? h.statut;
+      return `
+        <div class="mh-card" onclick="openDetail(${h.id})">
+          ${img}
+          <div class="mh-body">
+            <div class="mh-top">
+              <div class="mh-title">${h.titre}</div>
+              <span class="pill pill-${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="mh-zone">📍 ${h.zone}</div>
+            <div class="mh-price">${h.prix.toLocaleString()} HTG${h.type === 'Lwe' ? ' / mwa' : ''}</div>
+            ${h.statut === 'Rejected' && h.rejectionReason ? `<div class="mh-reason">⚠️ ${h.rejectionReason}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-sub">Erè: ${e.message}</div></div>`;
+  }
+}
+
 function setLoading(btnId, on) {
   const btn = $(btnId);
   if (!btn) return;
@@ -569,8 +1004,102 @@ function setLoading(btnId, on) {
 function openInfoModal()  { $('info-modal').classList.add('open'); }
 function closeInfoModal() { $('info-modal').classList.remove('open'); }
 
+// ── EDIT PROFILE ─────────────────────────────────────────────────────────────
+
+// Affiche foto oswa inityal nan yon elèman .ep-avatar
+function renderAvatarEl(el, avatarUrl, nom) {
+  if (avatarUrl) {
+    el.innerHTML = `<img src="${avatarUrl}" alt="${nom}">`;
+  } else {
+    const ini = (nom || '?').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+    el.textContent = ini;
+  }
+}
+
+function openEditProfile() {
+  const user = API.getUser();
+  if (!user) return;
+  renderAvatarEl($('ep-avatar'), user.avatarUrl, user.nom);
+  $('ep-nom').value        = user.nom     || '';
+  $('ep-tel').value        = user.telefon || '';
+  $('ep-email').value      = user.email   || '';
+  $('ep-old-pw').value     = '';
+  $('ep-new-pw').value     = '';
+  $('ep-confirm-pw').value = '';
+  goTo('edit-profile');
+}
+
+async function onAvatarFileChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  // Preview imedya
+  const reader = new FileReader();
+  reader.onload = e => { $('ep-avatar').innerHTML = `<img src="${e.target.result}" alt="avatar">`; };
+  reader.readAsDataURL(file);
+  // Upload
+  try {
+    const res = await API.auth.uploadAvatar(file);
+    const user = API.getUser();
+    const newAvatarUrl = res.data.avatarUrl;
+    API.saveAuth({ accessToken: API.getToken(), refreshToken: API.getRefresh(), user: { ...user, avatarUrl: newAvatarUrl } });
+    updateHomeUser();
+    renderAvatarEl($('profile-av'), newAvatarUrl, user.nom);
+    toast('Foto pwofil ajou!', 'ok');
+  } catch (e) {
+    toast(e.message, 'err');
+    // Reverifikasyon — remete foto ansyen
+    const user = API.getUser();
+    renderAvatarEl($('ep-avatar'), user.avatarUrl, user.nom);
+  }
+  input.value = '';
+}
+
+async function saveProfile() {
+  const nom    = $('ep-nom').value.trim();
+  const telefon= $('ep-tel').value.trim();
+  if (!nom)    { toast('Non obligatwa.', 'err'); return; }
+  if (!telefon){ toast('Telefòn obligatwa.', 'err'); return; }
+
+  setLoading('ep-save-btn', true);
+  try {
+    const res  = await API.auth.updateProfile({ nom, telefon });
+    const user = API.getUser();
+    // Mete ajou localStorage (konsève tout lòt champ)
+    API.saveAuth({ accessToken: API.getToken(), refreshToken: API.getRefresh(), user: { ...user, nom, telefon } });
+    updateHomeUser();
+    renderAvatarEl($('ep-avatar'), user.avatarUrl, nom);
+    toast(res.message || 'Pwofil ajou!', 'ok');
+  } catch (e) {
+    toast(e.message, 'err');
+  } finally {
+    setLoading('ep-save-btn', false);
+  }
+}
+
+async function changePassword() {
+  const oldPw  = $('ep-old-pw').value;
+  const newPw  = $('ep-new-pw').value;
+  const confPw = $('ep-confirm-pw').value;
+
+  if (!oldPw)           { toast('Mete ansyen modpas ou.', 'err'); return; }
+  if (newPw.length < 6) { toast('Nouvo modpas dwe gen omwen 6 karaktè.', 'err'); return; }
+  if (newPw !== confPw) { toast('Modpas konfirmasyon an pa menm.', 'err'); return; }
+
+  setLoading('ep-pw-btn', true);
+  try {
+    const res = await API.auth.changePassword({ oldPassword: oldPw, newPassword: newPw });
+    $('ep-old-pw').value     = '';
+    $('ep-new-pw').value     = '';
+    $('ep-confirm-pw').value = '';
+    toast(res.message || 'Modpas chanje!', 'ok');
+  } catch (e) {
+    toast(e.message, 'err');
+  } finally {
+    setLoading('ep-pw-btn', false);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Login page monte anlè lè app ouvri (si pa konekte)
   if (!API.isLoggedIn()) {
     const sp = $('splash');
     sp.classList.add('monte');
@@ -579,4 +1108,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initSplash();
   initGoogleSignIn();
   loadSocialProviders();
+
+  // Fèmen menu kontèks lè klike nenpòt kote
+  document.addEventListener('click', () => hideCtxMenu());
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCtxMenu(); });
 });

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<HouseImage> HouseImages => Set<HouseImage>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Message> Messages => Set<Message>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,6 +56,27 @@ public class AppDbContext : DbContext
             .HasOne(r => r.User)
             .WithMany(u => u.RefreshTokens)
             .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Message -> Sender (no cascade to avoid multiple paths)
+        modelBuilder.Entity<Message>()
+            .HasOne(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Message -> Receiver
+        modelBuilder.Entity<Message>()
+            .HasOne(m => m.Receiver)
+            .WithMany()
+            .HasForeignKey(m => m.ReceiverId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Message -> House
+        modelBuilder.Entity<Message>()
+            .HasOne(m => m.House)
+            .WithMany()
+            .HasForeignKey(m => m.HouseId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Seed Admin user (password: Admin@123)
