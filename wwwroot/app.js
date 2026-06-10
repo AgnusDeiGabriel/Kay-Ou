@@ -32,7 +32,53 @@ function goTo(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
   window.scrollTo(0, 0);
-  if (id === 'splash') restartSmokeAnims();
+}
+
+const SLIDE_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+const SLIDE_DUR  = '0.42s';
+
+function showAuth() {
+  showLogin();
+  restartSmokeAnims();
+  const sp = $('splash');
+  // Splash monte anlè sou home a
+  Object.assign(sp.style, {
+    position: 'fixed', inset: '0', zIndex: '1000',
+    display: 'flex', flexDirection: 'column',
+    background: 'var(--brown)', height: '100dvh', overflow: 'hidden',
+    transform: 'translateY(100%)',
+    transition: `transform ${SLIDE_DUR} ${SLIDE_EASE}`
+  });
+  void sp.offsetWidth;
+  sp.style.transform = 'translateY(0)';
+  sp.addEventListener('transitionend', () => {
+    sp.style.cssText = '';
+    goTo('splash');
+  }, { once: true });
+}
+
+function hideAuth(animated = true) {
+  if (!animated) {
+    goTo('home');
+    loadHouses();
+    return;
+  }
+  const sp = $('splash');
+  // Kache splash — li glise desann pandan home parèt
+  Object.assign(sp.style, {
+    position: 'fixed', inset: '0', zIndex: '1000',
+    display: 'flex', flexDirection: 'column',
+    background: 'var(--brown)', height: '100dvh', overflow: 'hidden',
+    transform: 'translateY(0)',
+    transition: `transform ${SLIDE_DUR} ${SLIDE_EASE}`
+  });
+  goTo('home');
+  loadHouses();
+  void sp.offsetWidth;
+  sp.style.transform = 'translateY(100%)';
+  sp.addEventListener('transitionend', () => {
+    sp.style.cssText = '';
+  }, { once: true });
 }
 
 function restartSmokeAnims() {
@@ -55,7 +101,9 @@ function initSplash() {
       window.history.replaceState({}, '', '/');
       if (user.role === 'Admin') { window.location.href = '/admin'; return; }
       toast('Byenveni ' + user.nom + ' 👋', 'ok');
-      updateHomeUser(); goTo('home'); loadHouses(); return;
+      updateHomeUser();
+      hideAuth(false);
+      return;
     } catch {}
   }
   if (params.get('oauth') === 'error') {
@@ -64,9 +112,13 @@ function initSplash() {
   }
 
   if (API.isLoggedIn()) {
+    const user = API.getUser();
+    if (!user || !user.id || !user.email) { API.clearAuth(); return; }
     if (API.isAdmin()) { window.location.href = '/admin'; return; }
-    goTo('home'); loadHouses(); updateHomeUser();
+    updateHomeUser();
+    hideAuth(false);
   }
+  // Si pa konekte: splash rete aktif (premye paj)
 }
 
 let _googleReady = false;
@@ -84,7 +136,8 @@ async function initGoogleSignIn() {
           API.saveAuth(r.data);
           if (r.data.user.role === 'Admin') { window.location.href = '/admin'; return; }
           toast('Byenveni ' + r.data.user.nom + ' 👋', 'ok');
-          updateHomeUser(); goTo('home'); loadHouses();
+          updateHomeUser();
+          hideAuth();
         } catch (e) { toast(e.message, 'err'); }
       }
     });
@@ -106,12 +159,12 @@ async function loadSocialProviders() {
   try {
     const res = await API.req('GET', '/auth/providers');
     const active = new Set(res.data || []);
-    document.querySelectorAll('.auth-social-btn').forEach(btn => {
-      const key = btn.classList.contains('auth-google') ? 'google'
-                : btn.classList.contains('auth-apple')  ? 'apple' : 'facebook';
-      btn.disabled = !active.has(key);
+    document.querySelectorAll('.social-btn').forEach(btn => {
+      const key = btn.classList.contains('social-google')   ? 'google'
+                : btn.classList.contains('social-apple')    ? 'apple' : 'facebook';
+      btn.disabled     = !active.has(key);
       btn.style.opacity = active.has(key) ? '1' : '0.35';
-      btn.title = active.has(key) ? key.charAt(0).toUpperCase()+key.slice(1) : 'Pa konfigire ankò';
+      btn.title = active.has(key) ? '' : 'Pa konfigire ankò';
     });
   } catch {}
 }
@@ -139,10 +192,10 @@ async function doRegister() {
   try {
     const res = await API.auth.register({ nom, email, telefon: tel, password: pass });
     API.saveAuth(res.data);
-    toast('Kont kreye! Byenveni ' + res.data.user.nom + ' 🎉', 'ok');
+    if (res.data.user.role === 'Admin') { window.location.href = '/admin'; return; }
+    toast(res.message || ('Byenveni ' + res.data.user.nom + ' 🎉'), 'ok', 5000);
     updateHomeUser();
-    goTo('home');
-    loadHouses();
+    hideAuth();
   } catch (e) {
     toast(e.message, 'err');
   } finally {
@@ -163,8 +216,7 @@ async function doLogin() {
     if (res.data.user.role === 'Admin') { window.location.href = '/admin'; return; }
     toast('Byenveni ' + res.data.user.nom + ' 👋', 'ok');
     updateHomeUser();
-    goTo('home');
-    loadHouses();
+    hideAuth();
   } catch (e) {
     toast(e.message, 'err');
   } finally {
@@ -178,7 +230,9 @@ async function doLogout() {
   } catch {}
   API.clearAuth();
   State.houses = [];
-  goTo('splash');
+  goTo('home');
+  loadHouses();
+  showAuth(); // splash monte sou home
 }
 
 function updateHomeUser() {
@@ -368,7 +422,7 @@ function selectType(el) {
 }
 
 async function submitHouse() {
-  if (!API.isLoggedIn()) { showLogin(); return; }
+  if (!API.isLoggedIn()) { showAuth(); return; }
 
   const titre       = $('add-titre').value.trim();
   const description = $('add-desc').value.trim();
@@ -427,8 +481,24 @@ $('resi-input').addEventListener('change', function () {
   }
 });
 
+function handlePayCta() {
+  const h = State.selectedHouse;
+  if (!h) return;
+  if (h.userHasPaid && h.owner?.telefon) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(h.owner.telefon)
+        .then(() => toast('Nimewo kopye: ' + h.owner.telefon, 'ok', 4000))
+        .catch(() => toast('📞 ' + h.owner.telefon, 'ok', 6000));
+    } else {
+      toast('📞 ' + h.owner.telefon, 'ok', 6000);
+    }
+    return;
+  }
+  showPayment();
+}
+
 function showPayment() {
-  if (!API.isLoggedIn()) { showLogin(); return; }
+  if (!API.isLoggedIn()) { showAuth(); return; }
   const h = State.selectedHouse;
   if (!h) return;
   $('pay-house-name').textContent = h.titre;
@@ -445,11 +515,13 @@ async function submitPayment() {
   if (!State.resiFile) { toast('Upload foto resi ou!', 'err'); return; }
   const h = State.selectedHouse;
   if (!h) return;
-  const telefon = $('pay-tel').value.trim();
+  const telefon       = $('pay-tel').value.trim();
+  const methodEl      = document.querySelector('.pay-method.sel');
+  const paymentMethod = methodEl ? methodEl.querySelector('.pay-method-name')?.textContent : 'MonCash';
 
   setLoading('btn-submit-pay', true);
   try {
-    await API.payments.pay(h.id, State.resiFile, telefon);
+    await API.payments.pay(h.id, State.resiFile, telefon, paymentMethod);
     // Show success
     $('pay-form-area').style.display = 'none';
     $('pay-success').style.display   = 'flex';
@@ -498,6 +570,13 @@ function openInfoModal()  { $('info-modal').classList.add('open'); }
 function closeInfoModal() { $('info-modal').classList.remove('open'); }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Login page monte anlè lè app ouvri (si pa konekte)
+  if (!API.isLoggedIn()) {
+    const sp = $('splash');
+    sp.classList.add('monte');
+    sp.addEventListener('animationend', () => sp.classList.remove('monte'), { once: true });
+  }
   initSplash();
   initGoogleSignIn();
+  loadSocialProviders();
 });

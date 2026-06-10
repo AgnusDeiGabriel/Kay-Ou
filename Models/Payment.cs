@@ -14,6 +14,7 @@ public class Payment
     public string Statut { get; set; } = "Pending";
 
     public string? ResiImageUrl { get; set; }   // foto resi MonCash/NatCash
+    public string? PaymentMethod { get; set; } // "MonCash" | "NatCash"
     public string? NoteAdmin { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

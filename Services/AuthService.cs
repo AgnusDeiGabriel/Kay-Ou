@@ -8,7 +8,7 @@ namespace KayAyiti.Services;
 
 public interface IAuthService
 {
-    Task<ApiResponse<string>> RegisterAsync(RegisterRequest req);
+    Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest req);
     Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest req);
     Task<ApiResponse<AuthResponse>> RefreshAsync(string refreshToken);
     Task<bool> RevokeTokenAsync(string refreshToken);
@@ -32,33 +32,39 @@ public class AuthService : IAuthService
         _email = email;
     }
 
-    public async Task<ApiResponse<string>> RegisterAsync(RegisterRequest req)
+    public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest req)
     {
         if (await _db.Users.AnyAsync(u => u.Email == req.Email.ToLower()))
-            return ApiResponse<string>.Fail("Email sa a deja itilize.");
+            return ApiResponse<AuthResponse>.Fail("Email sa a deja itilize.");
 
-        var token = Guid.NewGuid().ToString("N");
+        var smtpConfigured = !string.IsNullOrEmpty(_config["Email:SmtpPass"]);
+        var verificationToken = smtpConfigured ? Guid.NewGuid().ToString("N") : (string?)null;
 
         var user = new User
         {
-            Nom = req.Nom.Trim(),
-            Email = req.Email.ToLower().Trim(),
-            Telefon = req.Telefon.Trim(),
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-            Role = "User",
-            EmailVerified = false,
-            EmailVerificationToken = token,
-            EmailVerificationExpiry = DateTime.UtcNow.AddHours(24)
+            Nom           = req.Nom.Trim(),
+            Email         = req.Email.ToLower().Trim(),
+            Telefon       = req.Telefon.Trim(),
+            PasswordHash  = BCrypt.Net.BCrypt.HashPassword(req.Password),
+            Role          = "User",
+            EmailVerified = !smtpConfigured,
+            EmailVerificationToken  = verificationToken,
+            EmailVerificationExpiry = smtpConfigured ? DateTime.UtcNow.AddHours(24) : null
         };
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        await _email.SendVerificationEmailAsync(user.Email, user.Nom, token);
+        if (smtpConfigured && verificationToken != null)
+            await _email.SendVerificationEmailAsync(user.Email, user.Nom, verificationToken);
 
-        return ApiResponse<string>.Ok(
-            user.Email,
-            "Kont kreye! Tcheke email ou pou verifye kont ou.");
+        var message = smtpConfigured
+            ? "Kont kreye! Tcheke email ou pou verifye kont ou."
+            : "Kont kreye avèk siksè!";
+
+        return ApiResponse<AuthResponse>.Ok(
+            await BuildAuthResponse(user),
+            message);
     }
 
     public async Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest req)

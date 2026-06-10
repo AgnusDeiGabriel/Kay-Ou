@@ -146,17 +146,20 @@ async function renderDashPayments() {
       cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">Pa gen peman pandan 🎉</div>';
       return;
     }
+    list.forEach(p => _payCache.set(p.id, p));
     cont.innerHTML = list.map(p => `
-      <div class="mini-item" onclick="openPayModal(${JSON.stringify(p).replace(/"/g,'&quot;')})">
+      <div class="mini-item" data-pay-id="${p.id}" style="cursor:pointer;">
         ${userAv(p.user)}
         <div>
           <div class="user-name">${p.user.nom}</div>
-          <div class="user-email">${p.house.titre} • ${p.statut === 'Verified' ? 'MonCash' : 'MonCash/NatCash'}</div>
+          <div class="user-email">${p.house.titre}</div>
         </div>
         <div class="mini-amount">${p.amount.toLocaleString()} HTG</div>
         <div class="mini-time">${fmtDate(p.createdAt)}</div>
         <span class="pill pill-${p.statut.toLowerCase()}" style="margin-left:10px;">${p.statut}</span>
       </div>`).join('');
+    cont.querySelectorAll('[data-pay-id]').forEach(el =>
+      el.addEventListener('click', () => openPayModal(Number(el.dataset.payId))));
   } catch (e) {
     cont.innerHTML = `<div style="padding:16px;color:var(--red);">${e.message}</div>`;
   }
@@ -203,9 +206,15 @@ async function loadHouses() {
 }
 
 async function houseReview(id, action, btn) {
+  let reason = null;
+  if (action === 'Rejected') {
+    reason = prompt('Rezon refi a (obligatwa):');
+    if (!reason || !reason.trim()) { toast('Rezon refi obligatwa.', 'err'); return; }
+    reason = reason.trim();
+  }
   btn.disabled = true;
   try {
-    await API.houses.review(id, { action });
+    await API.houses.review(id, { action, reason });
     toast(action === 'Approved' ? 'Kay apwouve ✓' : 'Kay rejte.', action === 'Approved' ? 'ok' : 'err');
     loadHouses();
     if ($('page-dashboard').classList.contains('active')) renderDashHouses();
@@ -243,12 +252,13 @@ async function loadPayments() {
       tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><div class="empty-sub">Pa gen peman pou montre.</div></div></td></tr>';
       return;
     }
+    data.items.forEach(p => _payCache.set(p.id, p));
     tbody.innerHTML = data.items.map(p => `
-      <tr onclick="openPayModal(${JSON.stringify(p).replace(/"/g,'&quot;').replace(/'/g,'&#39;')})">
+      <tr data-pay-id="${p.id}" style="cursor:pointer;">
         <td>${userCell(p.user)}</td>
         <td>${p.house.titre}</td>
         <td style="font-weight:500;">${p.amount.toLocaleString()} HTG</td>
-        <td>${p.resiImageUrl ? `<button class="btn btn-sm btn-amber" onclick="event.stopPropagation();viewResi('${API.BASE_URL.replace('/api','')}${p.resiImageUrl}')">📋 Wè resi</button>` : '—'}</td>
+        <td>${p.resiImageUrl ? `<button class="btn btn-sm btn-amber" data-resi-url="${p.id}">Wè resi</button>` : '—'}</td>
         <td>${fmtDate(p.createdAt)}</td>
         <td><span class="pill pill-${p.statut.toLowerCase()}">${p.statut}</span></td>
         <td>
@@ -260,6 +270,20 @@ async function loadPayments() {
           </div>
         </td>
       </tr>`).join('');
+
+    // Event delegation — evite XSS nan onclick
+    tbody.querySelectorAll('[data-pay-id]').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.closest('.action-row')) return;
+        const resiBtn = e.target.closest('[data-resi-url]');
+        if (resiBtn) {
+          const p = _payCache.get(Number(resiBtn.dataset.resiUrl));
+          if (p?.resiImageUrl) viewResi(API.BASE_URL.replace('/api','') + p.resiImageUrl);
+          return;
+        }
+        openPayModal(Number(row.dataset.payId));
+      });
+    });
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:16px;">${e.message}</td></tr>`;
   }
@@ -281,9 +305,12 @@ async function payReview(id, action, btn) {
 function onPayStatusFilter(val) { payFilters.statut = val; payFilters.page = 1; loadPayments(); }
 
 
+const _payCache = new Map();
+
 let currentPayId = null;
-function openPayModal(p) {
-  if (typeof p === 'string') p = JSON.parse(p);
+function openPayModal(idOrObj) {
+  const p = typeof idOrObj === 'object' ? idOrObj : _payCache.get(Number(idOrObj));
+  if (!p) return;
   currentPayId = p.id;
 
   $('modal-pay-title').textContent = 'Resi — ' + p.user.nom;
@@ -493,10 +520,10 @@ function fmtDate(iso) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Si itilizatè nòmal tante aksede admin panel → voye li sou UI piblik
+  // Si itilizatè nòmal tante aksede admin panel → efase sesyon epi montre login admin
   if (API.isLoggedIn() && !API.isAdmin()) {
-    window.location.href = '/';
-    return;
+    API.clearAuth();
+    // Montre paj login admin nòmalman (pa redirecte)
   }
 
   // Si admin deja konekte

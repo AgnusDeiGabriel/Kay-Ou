@@ -20,12 +20,12 @@ public class PaymentsController : ControllerBase
 
     /// <summary>Inisye peman — upload resi MonCash/NatCash</summary>
     [HttpPost("{houseId}")]
-    public async Task<IActionResult> Pay(int houseId, IFormFile resi)
+    public async Task<IActionResult> Pay(int houseId, IFormFile resi, [FromForm] string? paymentMethod, [FromForm] string? telefon)
     {
         if (resi is null)
             return BadRequest(ApiResponse<bool>.Fail("Ou dwe upload resi peman an."));
 
-        var result = await _payments.InitiateAsync(houseId, resi, CurrentUserId);
+        var result = await _payments.InitiateAsync(houseId, resi, CurrentUserId, paymentMethod);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

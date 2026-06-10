@@ -138,6 +138,9 @@ namespace KayAyiti.Migrations
                     b.Property<string>("NoteAdmin")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PaymentMethod")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ResiImageUrl")
                         .HasColumnType("nvarchar(max)");
 

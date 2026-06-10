@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#2C1810"/>
+  <!-- House roof -->
+  <polygon points="100,260 256,120 412,260" fill="#E8622A"/>
+  <!-- House wall -->
+  <rect x="130" y="258" width="252" height="160" rx="6" fill="#7A4A30"/>
+  <!-- Door -->
+  <rect x="222" y="320" width="68" height="98" rx="8" fill="#3E2010"/>
+  <!-- Window left -->
+  <rect x="148" y="278" width="54" height="48" rx="6" fill="#FAF6F1"/>
+  <line x1="175" y1="278" x2="175" y2="326" stroke="#7A4A30" stroke-width="4"/>
+  <line x1="148" y1="302" x2="202" y2="302" stroke="#7A4A30" stroke-width="4"/>
+  <!-- Window right -->
+  <rect x="310" y="278" width="54" height="48" rx="6" fill="#FAF6F1"/>
+  <line x1="337" y1="278" x2="337" y2="326" stroke="#7A4A30" stroke-width="4"/>
+  <line x1="310" y1="302" x2="364" y2="302" stroke="#7A4A30" stroke-width="4"/>
+  <!-- Chimney -->
+  <rect x="330" y="168" width="30" height="58" rx="4" fill="#5C3A2A"/>
+</svg>

@@ -72,7 +72,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(
 /* Right form panel */
 .login-form-panel {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  background: #F0E8E0; padding: 48px 32px;
+  background: #F0E8E0; padding: 48px 32px; min-height: 100vh;
 }
 .login-box {
   width: 100%; max-width: 400px;
@@ -131,16 +131,20 @@ body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(
 }
 .lf-footer svg { stroke: #B8A89A; fill: none; stroke-width: 2; flex-shrink: 0; }
 
-/* Mobile: stack vertically */
+/* Mobile: fòm an premye, brand kache */
 @media (max-width: 680px) {
   #login-page { flex-direction: column; }
-  .login-brand {
-    width: 100%; padding: 40px 24px 36px;
-    flex-direction: row; gap: 20px;
+  .login-brand { display: none; }
+  .login-form-panel {
+    flex: 1; padding: 48px 24px 40px;
+    background: var(--brown);
+    display: flex; align-items: center; justify-content: center;
   }
-  .lb-desc, .lb-badges { display: none; }
-  .lb-logo { font-size: 38px; }
-  .login-form-panel { padding: 32px 24px 48px; }
+  .login-box {
+    background: #fff; border-radius: 20px;
+    padding: 32px 24px;
+  }
+  .lf-title { font-size: 28px; }
 }
 
 /* ── FORM ELEMENTS ───────────────────────────────────────── */

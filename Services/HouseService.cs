@@ -164,11 +164,23 @@ public class HouseService : IHouseService
 
     public async Task<ApiResponse<bool>> DeleteAsync(int id, int userId, string userRole)
     {
-        var house = await _db.Houses.FindAsync(id);
+        var house = await _db.Houses
+            .Include(h => h.Images)
+            .FirstOrDefaultAsync(h => h.Id == id);
+
         if (house is null) return ApiResponse<bool>.Fail("Kay pa jwenn.");
 
         if (house.UserId != userId && userRole != "Admin")
             return ApiResponse<bool>.Fail("Ou pa ka efase kay sa a.");
+
+        // Efase imaj sou disk
+        foreach (var img in house.Images)
+        {
+            var filePath = Path.Combine(_env.WebRootPath,
+                img.ImageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+        }
 
         _db.Houses.Remove(house);
         await _db.SaveChangesAsync();

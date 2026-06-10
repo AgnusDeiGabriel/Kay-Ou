@@ -39,8 +39,16 @@ html, body {
 .scroll-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .scroll-body::-webkit-scrollbar { display: none; }
 
-/* ── SPLASH + AUTH (yon sèl paj) ──────────────────────────── */
-#splash { background: var(--brown); display: flex; flex-direction: column; }
+/* ── SPLASH + AUTH ────────────────────────────────────────── */
+#splash { background: var(--brown); flex-direction: column; }
+
+@keyframes splashMonte {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+#splash.monte {
+  animation: splashMonte 0.48s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
 
 .splash-scroll {
   display: flex; flex-direction: column;
@@ -52,25 +60,27 @@ html, body {
 .splash-hero {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; text-align: center;
-  padding: 44px 28px 28px; flex-shrink: 0;
-  min-height: 220px;
+  padding: clamp(36px, 10vw, 60px) 32px clamp(24px, 6vw, 36px);
+  flex-shrink: 0;
 }
 
 .splash-logo {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 58px; font-weight: 700; color: var(--cream); letter-spacing: -1px;
+  font-size: clamp(54px, 15vw, 68px);
+  font-weight: 700; color: var(--cream); letter-spacing: -1px;
 }
 .splash-logo span { color: var(--orange); }
 .splash-tag {
-  color: rgba(250,246,241,.4); font-size: 11px;
-  letter-spacing: 4px; text-transform: uppercase; margin-top: 5px;
+  color: rgba(250,246,241,.4);
+  font-size: clamp(11px, 2.8vw, 13px);
+  letter-spacing: 4px; text-transform: uppercase; margin-top: 6px;
 }
 
 /* Auth card */
 .auth-card {
   background: #fff; border-radius: 28px 28px 0 0;
-  padding: 8px 26px 44px; flex: 1;
-  box-shadow: 0 -6px 30px rgba(0,0,0,.15);
+  padding: 8px clamp(20px, 6vw, 32px) clamp(32px, 8vw, 52px);
+  flex: 1; box-shadow: 0 -6px 30px rgba(0,0,0,.15);
   display: flex; flex-direction: column;
 }
 
@@ -152,20 +162,25 @@ html, body {
 }
 .social-divider span { font-size: 11px; color: var(--muted); white-space: nowrap; }
 
-/* Desktop: santre */
+/* ── Desktop: kat santre ─────────────────────────────────── */
 @media (min-width: 600px) {
-  #splash { align-items: center; justify-content: center; }
+  #splash { align-items: center; justify-content: center; background: #1E0E08; }
   .splash-scroll {
-    width: 100%; max-width: 430px;
+    width: 100%; max-width: 420px;
     height: auto; min-height: 0; flex-shrink: 0;
     border-radius: 28px; overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0,0,0,.4);
+    box-shadow: 0 32px 80px rgba(0,0,0,.55);
   }
-  .auth-card { flex: none; border-radius: 0; padding-bottom: 36px; display: block; }
+  .splash-hero  { padding: 40px 32px 28px; }
+  .splash-logo  { font-size: 52px; }
+  .splash-house { width: 100px; }
+  .auth-card    { flex: none; border-radius: 0; padding: 20px 32px 36px; display: block; }
   .auth-card::before { display: none; }
-  @media (max-height: 700px) {
-    .splash-hero { padding: 28px 28px 20px; }
-  }
+  .form-lbl     { font-size: 13px; }
+  .form-inp     { padding: 13px 16px; font-size: 15px; }
+  .btn-auth     { padding: 14px; font-size: 15px; }
+  .auth-switch  { font-size: 13px; }
+  .social-btn   { width: 48px; height: 48px; }
 }
 
 /* ── AUTH (ansyen — kenbe pou referans) ──────────────────── */
@@ -279,6 +294,10 @@ html, body {
 .cta-secondary { background: var(--cream2); color: var(--brown); }
 .cta-primary   { background: var(--orange); color: #fff; }
 .cta-primary:active { background: var(--orange-dk); }
+
+/* ── BACK ROW (global) ───────────────────────────────────── */
+.back-row { display: flex; align-items: center; gap: 8px; color: var(--cream); font-size: 14px; font-weight: 500; cursor: pointer; opacity: .85; }
+.back-row svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
 
 /* ── ADD HOUSE ───────────────────────────────────────────── */
 #add { background: var(--cream); }
@@ -423,6 +442,14 @@ html, body {
   width: 3px; height: 3px; border-radius: 50%;
   background: var(--muted); flex-shrink: 0;
 }
+.info-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.info-chip  { font-size: 12px; background: var(--cream2); color: var(--brown); border-radius: 20px; padding: 5px 11px; font-weight: 500; }
+.info-plans { display: flex; gap: 8px; }
+.info-plan  { flex: 1; background: var(--cream2); border-radius: 12px; padding: 10px 10px; text-align: center; border: 1.5px solid var(--border); }
+.info-plan--premium { border-color: var(--orange); background: rgba(229,115,53,.08); }
+.info-plan--agent   { border-color: var(--brown);  background: rgba(30,14,8,.06); }
+.info-plan-name { font-weight: 700; font-size: 13px; color: var(--brown); }
+.info-plan-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
 /* ── TOAST ───────────────────────────────────────────────── */
 .toast { display: none; position: fixed; bottom: 80px; left: 18px; right: 18px; padding: 13px 16px; border-radius: 12px; font-size: 13px; font-weight: 500; z-index: 999; text-align: center; animation: fadeUp .3s ease; }

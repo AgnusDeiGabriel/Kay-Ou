@@ -198,7 +198,7 @@
 
   <div class="detail-cta">
     <button class="cta-btn cta-secondary" onclick="toast('Fonksyon byento disponib!','info')">❤️ Sove</button>
-    <button class="cta-btn cta-primary" id="cta-pay" onclick="showPayment()">💳 Peye pou Kontak</button>
+    <button class="cta-btn cta-primary" id="cta-pay" onclick="handlePayCta()">💳 Peye pou Kontak</button>
   </div>
 </div>
 
@@ -347,9 +347,6 @@
         <div class="amenity-chip" id="amen-garaj"    onclick="this.classList.toggle('on')">🚗 Garaj</div>
         <div class="amenity-chip on" id="amen-sekirite" onclick="this.classList.toggle('on')">🔒 Sekirite</div>
         <div class="amenity-chip" id="amen-pisin"    onclick="this.classList.toggle('on')">🏊 Pisin</div>
-        <div class="amenity-chip" onclick="this.classList.toggle('on')">☀️ Solè</div>
-        <div class="amenity-chip" onclick="this.classList.toggle('on')">🌿 Jaden</div>
-        <div class="amenity-chip" onclick="this.classList.toggle('on')">🌬️ Klima</div>
       </div>
 
       <button class="btn-main dark" id="btn-submit-house" onclick="submitHouse()">Voye pou Validasyon →</button>
@@ -484,42 +481,69 @@
     </button>
 
     <div class="info-logo">Kay<span>Ou</span></div>
-    <div class="info-version">Vèsyon 1.0</div>
+    <div class="info-version">Vèsyon 1.0 • <em>"Kay Ou, se avni ou."</em></div>
 
     <div class="info-section">
-      <div class="info-section-title">Sou App la</div>
-      <p class="info-text">KayOu se yon platfòm imobilye ayisyen ki pèmèt moun vann, achte, oswa lwe kay nan tout vil Ayiti — Petion-Ville, Delmas, Tabarre ak plis ankò.</p>
+      <div class="info-section-title">Sou Platfòm nan</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-dot"></div><span>Achte &amp; vann kay ak tè</span></div>
+        <div class="info-item"><div class="info-dot"></div><span>Lwe apatman ak lokal komèsyal</span></div>
+        <div class="info-item"><div class="info-dot"></div><span>Afème (lokasyon alontèm)</span></div>
+        <div class="info-item"><div class="info-dot"></div><span>Chèche pwopriyete selon zòn &amp; bidjè</span></div>
+        <div class="info-item"><div class="info-dot"></div><span>Mete anons &amp; kontakte pwopriyetè</span></div>
+      </div>
     </div>
 
     <div class="info-section">
-      <div class="info-section-title">Poukisa kreye yon kont?</div>
+      <div class="info-section-title">Fonksyonalite</div>
+      <div class="info-chips">
+        <span class="info-chip">🔍 Rechèch Entelijan</span>
+        <span class="info-chip">🗺️ Kat Entèaktif</span>
+        <span class="info-chip">💬 Chat Entèn</span>
+        <span class="info-chip">🎥 Vizit Vityèl</span>
+        <span class="info-chip">🔔 Notifikasyon</span>
+        <span class="info-chip">✅ Verifikasyon Pwopriyetè</span>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-section-title">Sistèm Peman</div>
       <div class="info-list">
-        <div class="info-item">
-          <div class="info-dot"></div>
-          <span>Wè enfòmasyon kontak pwopriyetè kay yo</span>
+        <div class="info-item"><div class="info-dot"></div><span>MonCash &amp; NatCash</span></div>
+        <div class="info-item"><div class="info-dot"></div><span>Kat labank</span></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-section-title">Plans</div>
+      <div class="info-plans">
+        <div class="info-plan">
+          <div class="info-plan-name">Gratis</div>
+          <div class="info-plan-desc">3 anons / mwa</div>
         </div>
-        <div class="info-item">
-          <div class="info-dot"></div>
-          <span>Poste pwòp kay ou pou vann oswa lwe</span>
+        <div class="info-plan info-plan--premium">
+          <div class="info-plan-name">Premium</div>
+          <div class="info-plan-desc">500 HTG / mwa<br>Anons san limit</div>
         </div>
-        <div class="info-item">
-          <div class="info-dot"></div>
-          <span>Swiv tout peman ak demann ou yo</span>
-        </div>
-        <div class="info-item">
-          <div class="info-dot"></div>
-          <span>Resevwa notifikasyon sou kay ki entèrese ou</span>
+        <div class="info-plan info-plan--agent">
+          <div class="info-plan-name">Ajan</div>
+          <div class="info-plan-desc">2 500 HTG / mwa<br>Paj pwofesyonèl</div>
         </div>
       </div>
     </div>
 
     <div class="info-section">
-      <div class="info-section-title">Ekip</div>
-      <p class="info-text">Devlope pa ekip <strong><span style="color:#E53935">X</span><span style="color:#1E88E5">I</span><span style="color:#F9A825">O</span><span style="color:#1E88E5">D</span><span style="color:#43A047">I</span><span style="color:#E53935">X</span></strong> — nou kreye solisyon teknoloji pou mache ayisyen an.</p>
+      <div class="info-section-title">Faz 2 — Byento</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-dot"></div><span>Estimasyon pri kay ak IA</span></div>
+        <div class="info-item"><div class="info-dot"></div><span>Siyati kontra dijital</span></div>
+        <div class="info-item"><div class="info-dot"></div><span>Kalkilatè prè ipotèk</span></div>
+        <div class="info-item"><div class="info-dot"></div><span>Entèfas Kreyòl, Fransè &amp; Anglè</span></div>
+      </div>
     </div>
 
     <div class="info-footer">
-      <span>© 2026 KayOu • XIODIX</span>
+      <span>© 2026 KayOu • Devlope pa ekip <strong><span style="color:#E53935">X</span><span style="color:#1E88E5">I</span><span style="color:#F9A825">O</span><span style="color:#1E88E5">D</span><span style="color:#43A047">I</span><span style="color:#E53935">X</span></strong></span>
       <span class="info-dot-sep"></span>
       <span>Tout dwa rezève</span>
     </div>

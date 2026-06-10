@@ -175,10 +175,10 @@ app.MapGet("/admin", (IWebHostEnvironment env) =>
     Results.File(Path.Combine(env.WebRootPath, "admin.html"), "text/html"));
 app.MapGet("/verify", (IWebHostEnvironment env) =>
     Results.File(Path.Combine(env.WebRootPath, "verify.html"), "text/html"));
-app.UseAuthentication();
 if (!app.Environment.IsEnvironment("Docker"))
     app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseAuthentication();
 
 app.UseAuthorization();
 app.MapControllers();

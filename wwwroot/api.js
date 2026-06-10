@@ -86,10 +86,11 @@ const API = {
 
   // ── PAYMENTS ─────────────────────────────────────────────
   payments: {
-    pay(houseId, resiFile, telefon) {
+    pay(houseId, resiFile, telefon, paymentMethod) {
       const fd = new FormData();
       fd.append('resi', resiFile);
-      if (telefon) fd.append('telefon', telefon);
+      if (telefon)       fd.append('telefon',       telefon);
+      if (paymentMethod) fd.append('paymentMethod', paymentMethod);
       return API.req('POST', `/payments/${houseId}`, fd, true);
     },
     mine:    ()          => API.req('GET',   '/payments/my'),

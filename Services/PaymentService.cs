@@ -7,7 +7,7 @@ namespace KayAyiti.Services;
 
 public interface IPaymentService
 {
-    Task<ApiResponse<PaymentDto>> InitiateAsync(int houseId, IFormFile resi, int userId);
+    Task<ApiResponse<PaymentDto>> InitiateAsync(int houseId, IFormFile resi, int userId, string? paymentMethod = null);
     Task<ApiResponse<PagedResult<PaymentDto>>> GetAllAsync(int page, int pageSize, string? statut);
     Task<ApiResponse<List<PaymentDto>>> GetMyPaymentsAsync(int userId);
     Task<ApiResponse<PaymentDto>> AdminActionAsync(int id, AdminPaymentActionRequest req, int adminId);
@@ -27,7 +27,7 @@ public class PaymentService : IPaymentService
     }
 
     public async Task<ApiResponse<PaymentDto>> InitiateAsync(
-        int houseId, IFormFile resi, int userId)
+        int houseId, IFormFile resi, int userId, string? paymentMethod = null)
     {
         var house = await _db.Houses.FindAsync(houseId);
         if (house is null) return ApiResponse<PaymentDto>.Fail("Kay pa jwenn.");
@@ -65,11 +65,12 @@ public class PaymentService : IPaymentService
 
         var payment = new Payment
         {
-            UserId = userId,
-            HouseId = houseId,
-            Amount = amount,
-            ResiImageUrl = $"/uploads/payments/{fileName}",
-            Statut = "Pending"
+            UserId        = userId,
+            HouseId       = houseId,
+            Amount        = amount,
+            ResiImageUrl  = $"/uploads/payments/{fileName}",
+            PaymentMethod = paymentMethod,
+            Statut        = "Pending"
         };
 
         _db.Payments.Add(payment);
@@ -157,28 +158,35 @@ public class PaymentService : IPaymentService
 
         return new PaymentDto
         {
-            Id = p.Id,
-            Amount = p.Amount,
-            Statut = p.Statut,
-            ResiImageUrl = p.ResiImageUrl,
-            NoteAdmin = p.NoteAdmin,
+            Id            = p.Id,
+            Amount        = p.Amount,
+            Statut        = p.Statut,
+            ResiImageUrl  = p.ResiImageUrl,
+            PaymentMethod = p.PaymentMethod,
+            NoteAdmin     = p.NoteAdmin,
             CreatedAt = p.CreatedAt,
             VerifiedAt = p.VerifiedAt,
             User = AuthService.MapUser(p.User),
             House = new HouseDto
             {
-                Id = p.House.Id,
-                Titre = p.House.Titre,
-                Zone = p.House.Zone,
-                Prix = p.House.Prix,
-                Type = p.House.Type,
-                Statut = p.House.Statut,
-                Images = p.House.Images.Select(i => i.ImageUrl).ToList(),
-                Owner = AuthService.MapUser(p.House.User),
-                Description = p.House.Description,
-                Chambres = p.House.Chambres,
-                Beny = p.House.Beny,
-                Superficie = p.House.Superficie
+                Id              = p.House.Id,
+                Titre           = p.House.Titre,
+                Zone            = p.House.Zone,
+                Prix            = p.House.Prix,
+                Type            = p.House.Type,
+                Statut          = p.House.Statut,
+                RejectionReason = p.House.RejectionReason,
+                CreatedAt       = p.House.CreatedAt,
+                Images          = p.House.Images.Select(i => i.ImageUrl).ToList(),
+                Owner           = AuthService.MapUser(p.House.User),
+                Description     = p.House.Description,
+                Chambres        = p.House.Chambres,
+                Beny            = p.House.Beny,
+                Superficie      = p.House.Superficie,
+                Garaj           = p.House.Garaj,
+                Sekirite        = p.House.Sekirite,
+                Piscine         = p.House.Piscine,
+                UserHasPaid     = true
             }
         };
     }

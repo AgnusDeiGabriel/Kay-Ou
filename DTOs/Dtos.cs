@@ -151,6 +151,7 @@ public class PaymentDto
     public decimal Amount { get; set; }
     public string Statut { get; set; } = string.Empty;
     public string? ResiImageUrl { get; set; }
+    public string? PaymentMethod { get; set; }
     public string? NoteAdmin { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? VerifiedAt { get; set; }
