@@ -506,6 +506,8 @@ html, body {
 #add { background: var(--bg-feed); }
 .page-hdr { background: var(--brown); padding: 14px 20px 22px; flex-shrink: 0; }
 .page-hdr-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 700; color: var(--cream); margin-top: 10px; letter-spacing: -.2px; }
+.conv-hdr { display: flex; align-items: center; gap: 10px; padding: 14px 20px; }
+.conv-hdr .page-hdr-title { margin-top: 0; font-size: 20px; }
 .add-body { padding: 20px 18px 40px; }
 .upload-zone {
   width: 100%; height: 150px; border: 2px dashed var(--border); border-radius: 18px;
@@ -887,7 +889,7 @@ html, body {
 
 /* ── CHAT ────────────────────────────────────────────────── */
 #chat { background: var(--bg-feed); flex-direction: column; }
-.chat-hdr { background: var(--brown); padding: 14px 18px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+.chat-hdr { background: var(--brown); padding: 12px 18px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .chat-hdr .back-row { flex-shrink: 0; }
 .chat-hdr-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .chat-owner-av {
@@ -1004,3 +1006,81 @@ html, body {
 }
 .chat-send-btn:active { background: var(--orange-dk); transform: scale(.92); }
 .chat-send-btn:disabled { opacity: .5; cursor: default; }
+
+/* ── Mic button ───────────────────────────────── */
+.mic-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--bg-feed); border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; color: var(--muted);
+  transition: background .15s, color .15s;
+}
+.mic-btn:hover { background: rgba(212,83,26,.1); color: var(--orange); }
+.mic-btn.recording {
+  background: #E53935; color: #fff;
+  animation: mic-pulse 1.1s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(229,57,53,.45); }
+  50%      { box-shadow: 0 0 0 9px rgba(229,57,53,0); }
+}
+
+/* ── Recording bar ────────────────────────────── */
+.mic-record-bar {
+  display: none; align-items: center; gap: 12px;
+  padding: 10px 14px; background: var(--white); flex-shrink: 0;
+  border-top: 1px solid rgba(0,0,0,.05);
+}
+.mic-record-bar.active { display: flex; }
+.mic-pulse-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #E53935; flex-shrink: 0;
+  animation: dot-blink .75s ease-in-out infinite;
+}
+@keyframes dot-blink { 0%,100%{opacity:1} 50%{opacity:.18} }
+.mic-wave-canvas { flex: 1; height: 38px; border-radius: 6px; display: block; }
+.mic-timer { font-size: 13px; font-weight: 700; color: var(--brown); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.mic-cancel-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(0,0,0,.07); border: none; cursor: pointer;
+  color: var(--muted); font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s;
+}
+.mic-cancel-btn:hover { background: rgba(0,0,0,.12); }
+.mic-stop-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--orange); border: none; cursor: pointer; color: #fff;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  box-shadow: 0 3px 12px rgba(212,83,26,.35);
+  transition: background .15s;
+}
+.mic-stop-btn:hover { background: var(--orange-dk); }
+
+/* ── Audio player — stil WhatsApp ─────────────── */
+.chat-bubble-audio { padding: 8px 10px 6px !important; }
+.audio-msg { display: flex; align-items: center; gap: 9px; min-width: 230px; max-width: 260px; }
+
+.audio-av {
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; overflow: hidden;
+}
+.chat-bubble--mine   .audio-av { background: rgba(255,255,255,.2);  color: rgba(255,255,255,.9); }
+.chat-bubble--theirs .audio-av { background: rgba(212,83,26,.13); color: var(--orange); }
+.audio-av img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+.audio-play-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: filter .12s;
+}
+.chat-bubble--mine   .audio-play-btn { background: rgba(255,255,255,.2);  color: #fff; }
+.chat-bubble--theirs .audio-play-btn { background: rgba(212,83,26,.12); color: var(--orange); }
+.audio-play-btn:hover { filter: brightness(1.15); }
+
+.audio-wave-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.audio-wave-canvas { display: block; width: 100%; height: 28px; }
+.audio-dur { font-size: 11px; }
+.chat-bubble--mine   .audio-dur { color: rgba(255,255,255,.65); }
+.chat-bubble--theirs .audio-dur { color: var(--muted); }

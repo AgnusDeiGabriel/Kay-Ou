@@ -9,6 +9,7 @@ public class Message
     public bool IsEdited { get; set; } = false;
     public DateTime? EditedAt { get; set; }
     public bool IsPinned { get; set; } = false;
+    public string? AudioUrl { get; set; }
 
     public int SenderId { get; set; }
     public User Sender { get; set; } = null!;

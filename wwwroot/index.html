@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>KayOu — Imobilye Ayiti</title>
-<link rel="stylesheet" href="app.css?v=4">
+<link rel="stylesheet" href="app.css?v=12">
 </head>
 <body>
 
@@ -148,19 +148,19 @@
   </div>
 
   <div class="bottom-nav">
-    <div class="nav-btn active">
+    <div class="nav-btn active" data-nav="home" onclick="navClick(this,'home')">
       <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Akèy
     </div>
-    <div class="nav-btn" onclick="switchTab(document.querySelectorAll('.tab')[1],'Vann')">
+    <div class="nav-btn" data-nav="vann" onclick="navClick(this,'vann')">
       <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
       Vann
     </div>
-    <div class="nav-btn" onclick="switchTab(document.querySelectorAll('.tab')[2],'Lwe')">
+    <div class="nav-btn" data-nav="lwe" onclick="navClick(this,'lwe')">
       <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
       Lwe
     </div>
-    <div class="nav-btn" onclick="goTo('profile');loadProfileStats();">
+    <div class="nav-btn" data-nav="profile" onclick="navClick(this,'profile')">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Pwofil
     </div>
@@ -216,7 +216,6 @@
   <div class="chat-hdr">
     <div class="back-row" onclick="closeChat()">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Tounen
     </div>
     <div class="chat-hdr-info">
       <div class="chat-owner-av" id="chat-owner-av">?</div>
@@ -235,6 +234,19 @@
 
   <div class="chat-messages" id="chat-messages"></div>
 
+  <!-- Bari anrejistreman (kache pa defò) -->
+  <div class="mic-record-bar" id="mic-record-bar">
+    <div class="mic-pulse-dot"></div>
+    <canvas class="mic-wave-canvas" id="mic-wave-canvas"></canvas>
+    <span class="mic-timer" id="mic-timer">0:00</span>
+    <button class="mic-cancel-btn" onclick="cancelRecording()" title="Anile">✕</button>
+    <button class="mic-stop-btn" onclick="toggleRecording()" title="Voye">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
   <div class="chat-edit-bar" id="chat-edit-bar">
     <div class="chat-edit-info">
       <span class="chat-edit-label">✏️ Modifye mesaj</span>
@@ -243,11 +255,17 @@
     <button class="chat-edit-cancel" onclick="cancelEditMessage()" title="Anile">✕</button>
   </div>
 
-  <div class="chat-input-row">
+  <div class="chat-input-row" id="chat-input-row">
     <input type="text" class="chat-input" id="chat-input"
            placeholder="Ekri yon mesaj..."
            maxlength="500"
            onkeydown="if(event.key==='Enter')sendChatMessage();else if(event.key==='Escape')cancelEditMessage()">
+    <button class="mic-btn" id="mic-btn" onclick="toggleRecording()" title="Mesaj vwa">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
+      </svg>
+    </button>
     <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()">
       <svg viewBox="0 0 24 24" width="20" height="20">
         <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
@@ -258,10 +276,9 @@
 
 <!-- ════════════════ ADD HOUSE ════════════════ -->
 <div class="screen" id="add">
-  <div class="page-hdr">
+  <div class="page-hdr conv-hdr">
     <div class="back-row" onclick="goTo('home')">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Tounen
     </div>
     <div class="page-hdr-title">Ajoute Kay Ou</div>
   </div>
@@ -411,11 +428,12 @@
 <!-- ════════════════ PAYMENT ════════════════ -->
 <div class="screen" id="payment">
   <div class="pay-hdr">
-    <div class="back-row" onclick="goTo('detail')">
-      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Tounen
+    <div class="pay-hdr-top conv-hdr" style="background:transparent;padding:14px 20px 6px;">
+      <div class="back-row" onclick="goTo('detail')">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--cream);">Voye Resi</div>
     </div>
-    <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--cream);">Voye Resi</div>
     <div class="pay-summary">
       <div style="font-size:28px;">🏡</div>
       <div>
@@ -576,10 +594,9 @@
 
 <!-- ════════════════ EDIT PROFILE ════════════════ -->
 <div class="screen" id="edit-profile">
-  <div class="page-hdr">
+  <div class="page-hdr conv-hdr">
     <div class="back-row" onclick="goTo('profile')">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Tounen
     </div>
     <div class="page-hdr-title">Modifye Pwofil</div>
   </div>
@@ -641,10 +658,9 @@
 
 <!-- ════════════════ MY HOUSES ════════════════ -->
 <div class="screen" id="my-houses">
-  <div class="page-hdr">
+  <div class="page-hdr conv-hdr">
     <div class="back-row" onclick="goTo('profile')">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Tounen
     </div>
     <div class="page-hdr-title">Kay Mwen Yo</div>
   </div>
@@ -732,10 +748,9 @@
 
 <!-- ════════════════ CONVERSATIONS ════════════════ -->
 <div class="screen" id="conversations">
-  <div class="page-hdr">
+  <div class="page-hdr conv-hdr">
     <div class="back-row" onclick="goTo('home')">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Tounen
     </div>
     <div class="page-hdr-title">Mesaj Yo</div>
   </div>
@@ -752,7 +767,7 @@
 <!-- Context menu (global) -->
 <div class="ctx-menu" id="msg-ctx-menu"></div>
 
-<script src="api.js?v=9"></script>
-<script src="app.js?v=9"></script>
+<script src="api.js?v=13"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

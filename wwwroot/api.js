@@ -121,6 +121,12 @@ const API = {
     editMessage:   (houseId, msgId, content) => API.req('PATCH',  `/chat/${houseId}/${msgId}`,      { content }),
     deleteMessage: (houseId, msgId)          => API.req('DELETE', `/chat/${houseId}/${msgId}`),
     pinMessage:    (houseId, msgId)          => API.req('PATCH',  `/chat/${houseId}/${msgId}/pin`),
+    sendVoice: (houseId, file, withUserId) => {
+      const q  = withUserId ? `?with=${withUserId}` : '';
+      const fd = new FormData();
+      fd.append('audio', file);
+      return API.req('POST', `/chat/${houseId}/voice${q}`, fd, true);
+    },
   },
 
   // ── ADMIN ─────────────────────────────────────────────────

@@ -72,7 +72,9 @@ public class ChatController : ControllerBase
                 SenderNom = m.Sender.Nom,
                 IsEdited  = m.IsEdited,
                 EditedAt  = m.EditedAt,
-                IsPinned  = m.IsPinned
+                IsPinned        = m.IsPinned,
+                AudioUrl        = m.AudioUrl,
+                SenderAvatarUrl = m.Sender.AvatarUrl
             })
             .ToListAsync();
 
@@ -143,6 +145,56 @@ public class ChatController : ControllerBase
             IsRead    = false,
             IsMine    = true,
             SenderNom = msg.Sender.Nom
+        }));
+    }
+
+    // POST /api/chat/{houseId}/voice
+    [HttpPost("{houseId}/voice")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> SendVoiceMessage(
+        int houseId, IFormFile audio, [FromQuery] int? with)
+    {
+        var userId = GetUserId();
+        var house  = await _db.Houses.FirstOrDefaultAsync(h => h.Id == houseId);
+        if (house == null) return NotFound(ApiResponse<object>.Fail("Kay pa jwenn."));
+        if (audio == null || audio.Length == 0)
+            return BadRequest(ApiResponse<object>.Fail("Fichye son an vid."));
+        if (audio.Length > 10 * 1024 * 1024)
+            return BadRequest(ApiResponse<object>.Fail("Son twò gwo (max 10 MB)."));
+
+        int receiverId;
+        if (userId == house.UserId)
+        {
+            if (with == null)
+                return BadRequest(ApiResponse<object>.Fail("Mete ?with={userId}."));
+            var exists = await _db.Messages.AnyAsync(m => m.HouseId == houseId && m.SenderId == with.Value);
+            if (!exists) return BadRequest(ApiResponse<object>.Fail("Konvèsasyon pa egziste."));
+            receiverId = with.Value;
+        }
+        else { receiverId = house.UserId; }
+
+        var ext = Path.GetExtension(audio.FileName).ToLowerInvariant();
+        if (!new[] { ".webm", ".ogg", ".mp4", ".m4a", ".wav", ".opus" }.Contains(ext)) ext = ".webm";
+        var fileName = $"{Guid.NewGuid()}{ext}";
+        var dir = Path.Combine("wwwroot", "uploads", "voice");
+        Directory.CreateDirectory(dir);
+        await using var fs = new FileStream(Path.Combine(dir, fileName), FileMode.Create);
+        await audio.CopyToAsync(fs);
+
+        var audioUrl = $"/uploads/voice/{fileName}";
+        var msg = new Message
+        {
+            Content = "", AudioUrl = audioUrl,
+            SenderId = userId, ReceiverId = receiverId, HouseId = houseId
+        };
+        _db.Messages.Add(msg);
+        await _db.SaveChangesAsync();
+        await _db.Entry(msg).Reference(m => m.Sender).LoadAsync();
+
+        return Ok(ApiResponse<MessageDto>.Ok(new MessageDto
+        {
+            Id = msg.Id, Content = "", AudioUrl = audioUrl,
+            SentAt = msg.SentAt, IsRead = false, IsMine = true, SenderNom = msg.Sender.Nom
         }));
     }
 

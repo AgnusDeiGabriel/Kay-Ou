@@ -212,6 +212,8 @@ public class MessageDto
     public bool IsEdited { get; set; }
     public DateTime? EditedAt { get; set; }
     public bool IsPinned { get; set; }
+    public string? AudioUrl { get; set; }
+    public string? SenderAvatarUrl { get; set; }
 }
 
 public class EditMessageRequest

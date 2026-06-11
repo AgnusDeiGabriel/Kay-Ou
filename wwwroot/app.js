@@ -254,6 +254,8 @@ function openChat() {
 function closeChat() {
   stopChatPoll();
   cancelEditMessage();
+  cancelRecording();
+  if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
   hideCtxMenu();
   hidePinBar();
   const backTo = ChatState.fromConv ? 'conversations' : 'detail';
@@ -310,21 +312,39 @@ function renderChatMessages(messages) {
       </div>`;
     return;
   }
-  box.innerHTML = messages.map(m => `
-    <div class="chat-bubble ${m.isMine ? 'chat-bubble--mine' : 'chat-bubble--theirs'}${m.isPinned ? ' bubble-pinned' : ''}"
+  box.innerHTML = messages.map(m => {
+    const isAudio = !!m.audioUrl;
+    const avHtml  = m.senderAvatarUrl
+      ? `<img src="${m.senderAvatarUrl}" alt="">`
+      : (m.senderNom || '?').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+    const body = isAudio
+      ? `<div class="audio-msg">
+           <div class="audio-av">${avHtml}</div>
+           <button class="audio-play-btn" data-url="${m.audioUrl}" onclick="toggleAudioPlay(this)">${playIconSvg()}</button>
+           <div class="audio-wave-wrap">
+             <canvas class="audio-wave-canvas" data-url="${m.audioUrl}"></canvas>
+             <span class="audio-dur">—</span>
+           </div>
+         </div>`
+      : `<div class="bubble-text">${escHtml(m.content)}</div>`;
+    return `
+    <div class="chat-bubble ${isAudio ? 'chat-bubble-audio ' : ''}${m.isMine ? 'chat-bubble--mine' : 'chat-bubble--theirs'}${m.isPinned ? ' bubble-pinned' : ''}"
          data-id="${m.id}"
          data-mine="${m.isMine}"
          data-pinned="${m.isPinned}"
+         data-audio="${isAudio}"
          data-content="${escHtml(m.content)}"
          oncontextmenu="showMsgMenu(event,this)">
-      <div class="bubble-text">${escHtml(m.content)}</div>
+      ${body}
       <div class="bubble-footer">
         ${m.isPinned ? '<span class="bubble-pin-icon">📌</span>' : ''}
         ${m.isEdited ? '<span class="bubble-edited">modifye</span>' : ''}
         <span class="bubble-time">${fmtMsgTime(m.sentAt)}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   box.scrollTop = box.scrollHeight;
+  loadAudioWaveforms();
 }
 
 async function sendChatMessage() {
@@ -372,10 +392,11 @@ function showMsgMenu(e, el) {
   CtxMenu.isMine   = el.dataset.mine   === 'true';
   CtxMenu.isPinned = el.dataset.pinned === 'true';
   CtxMenu.content  = el.dataset.content;
+  const isAudio    =  el.dataset.audio  === 'true';
 
   const menu = $('msg-ctx-menu');
   let html = '';
-  if (CtxMenu.isMine) {
+  if (CtxMenu.isMine && !isAudio) {
     html += `<div class="ctx-item" onclick="ctxEdit()"><span class="ctx-icon">✏️</span>Modifye</div>`;
     html += `<div class="ctx-sep"></div>`;
   }
@@ -472,6 +493,348 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── VOICE RECORDING ──────────────────────────────────────────
+
+let _mediaRec     = null;
+let _audioChunks  = [];
+let _shouldUpload = false;
+let _recTimer     = null;
+let _recSecs      = 0;
+let _currentAudio = null;
+let _audioCtx     = null;
+let _analyser     = null;
+let _waveAnim     = null;
+
+async function toggleRecording() {
+  if (_mediaRec && _mediaRec.state === 'recording') {
+    _shouldUpload = true;
+    _mediaRec.stop();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
+    toast('Navigatè ou pa sipòte mikwofòn.', 'err'); return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mime   = ['audio/webm;codecs=opus','audio/webm','audio/ogg','audio/mp4']
+                     .find(t => MediaRecorder.isTypeSupported(t)) || '';
+    _mediaRec    = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+    _audioChunks = [];
+    _shouldUpload = false;
+
+    _mediaRec.ondataavailable = e => { if (e.data.size > 0) _audioChunks.push(e.data); };
+    _mediaRec.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      setRecUI(false);
+      if (_shouldUpload && _audioChunks.length > 0) {
+        const type = mime || 'audio/webm';
+        const ext  = type.includes('ogg') ? '.ogg' : type.includes('mp4') ? '.mp4' : '.webm';
+        const blob = new Blob(_audioChunks, { type });
+        const file = new File([blob], `voice${ext}`, { type });
+        await uploadVoice(file);
+      }
+      _audioChunks = [];
+    };
+
+    _mediaRec.start(100);
+    _recSecs = 0;
+    setRecUI(true);
+    startWaveform(stream);
+    _recTimer = setInterval(() => {
+      _recSecs++;
+      $('mic-timer').textContent = fmtRecTime(_recSecs);
+      if (_recSecs >= 120) { _shouldUpload = true; _mediaRec.stop(); }
+    }, 1000);
+
+  } catch {
+    toast('Pèmèt aksè mikwofòn nan navigatè ou a.', 'err');
+  }
+}
+
+function cancelRecording() {
+  _shouldUpload = false;
+  if (_mediaRec && _mediaRec.state !== 'inactive') _mediaRec.stop();
+  else setRecUI(false);
+}
+
+function setRecUI(on) {
+  clearInterval(_recTimer); _recTimer = null;
+  const micBtn = $('mic-btn');
+  const recBar = $('mic-record-bar');
+  const inRow  = $('chat-input-row');
+  if (on) {
+    micBtn?.classList.add('recording');
+    recBar?.classList.add('active');
+    if (inRow) inRow.style.display = 'none';
+    $('mic-timer').textContent = '0:00';
+  } else {
+    micBtn?.classList.remove('recording');
+    recBar?.classList.remove('active');
+    if (inRow) inRow.style.display = '';
+    _mediaRec = null;
+    stopWaveform();
+  }
+}
+
+async function uploadVoice(file) {
+  if (!ChatState.houseId) return;
+  const btn = $('mic-btn');
+  if (btn) btn.disabled = true;
+  try {
+    await API.chat.sendVoice(ChatState.houseId, file, ChatState.withUserId);
+    await loadChatMessages();
+  } catch {
+    toast('Mesaj vwa pa voye. Eseye ankò.', 'err');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function fmtRecTime(s) {
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function startWaveform(stream) {
+  try {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    _analyser = _audioCtx.createAnalyser();
+    _analyser.fftSize = 256;
+    _audioCtx.createMediaStreamSource(stream).connect(_analyser);
+    setupWaveCanvas();
+    drawWave();
+  } catch {}
+}
+
+function setupWaveCanvas() {
+  const canvas = $('mic-wave-canvas');
+  if (!canvas) return;
+  // Lè bari a vin vizib, li dimansyon reyèl li
+  setTimeout(() => {
+    const dpr = window.devicePixelRatio || 1;
+    const w   = canvas.clientWidth  || 150;
+    const h   = canvas.clientHeight || 38;
+    canvas.width  = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+  }, 30);
+}
+
+function drawWave() {
+  if (!_analyser) return;
+  _waveAnim = requestAnimationFrame(drawWave);
+
+  const canvas = $('mic-wave-canvas');
+  if (!canvas) return;
+  const ctx  = canvas.getContext('2d');
+  const dpr  = window.devicePixelRatio || 1;
+  const W    = canvas.width  / dpr;
+  const H    = canvas.height / dpr;
+
+  const bufLen = _analyser.fftSize;
+  const data   = new Uint8Array(bufLen);
+  _analyser.getByteTimeDomainData(data);
+
+  ctx.clearRect(0, 0, W, H);
+
+  const barCount = 32;
+  const seg      = Math.floor(bufLen / barCount);
+  const barW     = W / barCount;
+  const gap      = 2.5;
+
+  for (let i = 0; i < barCount; i++) {
+    // Amplitude maksimòm nan segman sa
+    let peak = 0;
+    for (let j = 0; j < seg; j++) {
+      const v = Math.abs((data[i * seg + j] - 128) / 128);
+      if (v > peak) peak = v;
+    }
+    const h = Math.max(3, peak * H * 0.88);
+    const x = i * barW + gap / 2;
+    const bw = barW - gap;
+    const y  = (H - h) / 2;
+    const r  = Math.min(bw / 2, 3);
+
+    ctx.fillStyle = `rgba(229,57,53,${0.35 + peak * 0.65})`;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + bw - r, y);
+    ctx.arcTo(x + bw, y, x + bw, y + r, r);
+    ctx.lineTo(x + bw, y + h - r);
+    ctx.arcTo(x + bw, y + h, x + bw - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function stopWaveform() {
+  if (_waveAnim) { cancelAnimationFrame(_waveAnim); _waveAnim = null; }
+  _analyser = null;
+  if (_audioCtx) { _audioCtx.close().catch(() => {}); _audioCtx = null; }
+  const canvas = $('mic-wave-canvas');
+  if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ── AUDIO WAVEFORM (player) ───────────────────────────────────
+
+const _waveCache = {};  // url → Float32Array amplitudes
+
+async function loadWaveformData(url, barCount = 50) {
+  if (_waveCache[url]) return _waveCache[url];
+  const resp   = await fetch(url);
+  const buf    = await resp.arrayBuffer();
+  const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const audio  = await tmpCtx.decodeAudioData(buf);
+  tmpCtx.close();
+
+  const ch      = audio.getChannelData(0);
+  const seg     = Math.floor(ch.length / barCount);
+  const amps    = new Float32Array(barCount);
+  for (let i = 0; i < barCount; i++) {
+    let peak = 0;
+    for (let j = 0; j < seg; j++) {
+      const v = Math.abs(ch[i * seg + j]);
+      if (v > peak) peak = v;
+    }
+    amps[i] = peak;
+  }
+  // Normalise
+  const max = Math.max(...amps, 0.01);
+  for (let i = 0; i < barCount; i++) amps[i] /= max;
+
+  _waveCache[url] = amps;
+  return amps;
+}
+
+function setupAudioCanvas(canvas) {
+  return new Promise(resolve => requestAnimationFrame(() => {
+    const dpr = window.devicePixelRatio || 1;
+    const w   = canvas.clientWidth  || 180;
+    const h   = canvas.clientHeight || 28;
+    canvas.width  = w * dpr;
+    canvas.height = h * dpr;
+    canvas.getContext('2d').scale(dpr, dpr);
+    resolve();
+  }));
+}
+
+function drawStaticWave(canvas, amps, progress = 0) {
+  if (!canvas || !amps) return;
+  const dpr  = window.devicePixelRatio || 1;
+  const W    = canvas.width  / dpr;
+  const H    = canvas.height / dpr;
+  const ctx  = canvas.getContext('2d');
+  const mine = canvas.closest('.chat-bubble--mine') !== null;
+
+  const playedCol   = mine ? 'rgba(255,255,255,.95)' : 'rgba(212,83,26,.90)';
+  const unplayedCol = mine ? 'rgba(255,255,255,.28)' : 'rgba(212,83,26,.22)';
+
+  ctx.clearRect(0, 0, W, H);
+
+  const n      = amps.length;
+  const bW     = W / n;
+  const gap    = 1.2;
+  const played = Math.round(progress * n);
+
+  for (let i = 0; i < n; i++) {
+    const amp  = amps[i];
+    const h    = Math.max(3, amp * H * 0.88);
+    const x    = i * bW + gap / 2;
+    const bw   = bW - gap;
+    const y    = (H - h) / 2;
+    const r    = Math.min(bw / 2, 2.5);
+
+    ctx.fillStyle = i < played ? playedCol : unplayedCol;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + bw - r, y);
+    ctx.arcTo(x + bw, y, x + bw, y + r, r);
+    ctx.lineTo(x + bw, y + h - r);
+    ctx.arcTo(x + bw, y + h, x + bw - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+async function loadAudioWaveforms() {
+  const canvases = document.querySelectorAll('.audio-wave-canvas[data-url]');
+  for (const canvas of canvases) {
+    const url = canvas.dataset.url;
+    await setupAudioCanvas(canvas);
+    try {
+      const amps = await loadWaveformData(url);
+      canvas._amps = amps;
+      drawStaticWave(canvas, amps, 0);
+    } catch {
+      // Fallback: ba plat si echwe
+      const flat = new Float32Array(40).fill(0.25);
+      canvas._amps = flat;
+      drawStaticWave(canvas, flat, 0);
+    }
+  }
+}
+
+// ── AUDIO PLAYBACK ────────────────────────────────────────────
+
+function toggleAudioPlay(btn) {
+  const url    = btn.dataset.url;
+  const msgEl  = btn.closest('.audio-msg');
+  const canvas = msgEl?.querySelector('.audio-wave-canvas');
+  const durEl  = msgEl?.querySelector('.audio-dur');
+
+  if (_currentAudio) {
+    if (_currentAudio._url === url && !_currentAudio.paused) {
+      _currentAudio.pause();
+      btn.innerHTML = playIconSvg();
+      return;
+    }
+    _currentAudio.pause();
+    document.querySelectorAll('.audio-play-btn').forEach(b => { b.innerHTML = playIconSvg(); });
+  }
+
+  const audio   = new Audio(url);
+  audio._url    = url;
+  _currentAudio = audio;
+
+  audio.onloadedmetadata = () => {
+    if (durEl && isFinite(audio.duration))
+      durEl.textContent = fmtRecTime(Math.floor(audio.duration));
+  };
+  audio.ontimeupdate = () => {
+    const prog = audio.duration ? audio.currentTime / audio.duration : 0;
+    if (canvas?._amps) drawStaticWave(canvas, canvas._amps, prog);
+    if (durEl) durEl.textContent = fmtRecTime(Math.floor(audio.currentTime));
+  };
+  audio.onended = () => {
+    btn.innerHTML = playIconSvg();
+    if (canvas?._amps) drawStaticWave(canvas, canvas._amps, 0);
+    if (durEl && isFinite(audio.duration))
+      durEl.textContent = fmtRecTime(Math.floor(audio.duration));
+  };
+
+  audio.play().catch(() => toast('Pa ka jwe son an.', 'err'));
+  btn.innerHTML = pauseIconSvg();
+}
+
+function playIconSvg() {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+}
+function pauseIconSvg() {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+}
+
 // ── CONVERSATIONS ────────────────────────────────────────────
 
 let _unreadPollTimer = null;
@@ -506,6 +869,7 @@ function renderConversations(list) {
     const avatarHtml = c.otherUserAvatarUrl
       ? `<img src="${c.otherUserAvatarUrl}" alt="${escHtml(c.otherUserNom)}">`
       : initials;
+    const preview = c.lastMessage || '🎵 Mesaj vwa';
     const prefix = c.isLastMessageMine ? '<span class="conv-sent-prefix">Mwen: </span>' : '';
 
     return `
@@ -522,7 +886,7 @@ function renderConversations(list) {
             <span class="conv-time">${timeStr}</span>
           </div>
           <div class="conv-bot">
-            <span class="conv-preview${hasUnread ? ' unread' : ''}">${prefix}${escHtml(c.lastMessage)}</span>
+            <span class="conv-preview${hasUnread ? ' unread' : ''}">${prefix}${escHtml(preview)}</span>
             ${hasUnread ? `<span class="conv-unread-badge">${c.unreadCount}</span>` : ''}
           </div>
           <div class="conv-house">🏠 ${escHtml(c.houseTitre)}</div>
@@ -716,6 +1080,31 @@ function switchTab(el, val) {
   el.classList.add('active');
   State.curTab = val;
   loadHouses();
+}
+
+function navClick(el, action) {
+  document.querySelectorAll('.nav-btn[data-nav]').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  if (action === 'home') {
+    goTo('home');
+    State.curTab = 'all';
+    tabs.forEach((t, i) => t.classList.toggle('active', i === 0));
+    loadHouses();
+  } else if (action === 'vann') {
+    goTo('home');
+    State.curTab = 'Vann';
+    tabs.forEach((t, i) => t.classList.toggle('active', i === 1));
+    loadHouses();
+  } else if (action === 'lwe') {
+    goTo('home');
+    State.curTab = 'Lwe';
+    tabs.forEach((t, i) => t.classList.toggle('active', i === 2));
+    loadHouses();
+  } else if (action === 'profile') {
+    goTo('profile');
+    loadProfileStats();
+  }
 }
 
 function toggleCustomZone() {
