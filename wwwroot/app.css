@@ -340,70 +340,80 @@ html, body {
 .section-title { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
 .section-count { font-size: 12px; color: var(--orange); font-weight: 600; }
 
-/* 4-kolòn gri */
+/* 2-kolòn gri sou mobil */
 #listings-container {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 0 2px;
 }
 #listings-container .empty-state,
 #listings-container .loader { grid-column: 1 / -1; }
 
 /* ── HOUSE CARD ──────────────────────────────────────────── */
 .house-card {
-  background: var(--white); border-radius: 14px;
+  background: var(--white); border-radius: 16px;
   overflow: hidden; margin-bottom: 0;
   box-shadow: var(--shadow-sm);
   cursor: pointer; transition: transform .15s, box-shadow .2s;
+  display: flex; flex-direction: column;
 }
-.house-card:active { transform: scale(.95); box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.house-card:active { transform: scale(.97); box-shadow: 0 1px 4px rgba(0,0,0,.05); }
 
 .card-img {
-  width: 100%; aspect-ratio: 3 / 4;
+  width: 100%; aspect-ratio: 1 / 1;
   background: linear-gradient(135deg,#E8D5C4,#C9A98A);
   display: flex; align-items: center; justify-content: center;
-  position: relative; overflow: hidden;
+  position: relative; overflow: hidden; flex-shrink: 0;
 }
 .card-img img { width: 100%; height: 100%; object-fit: cover; }
-.card-img-placeholder { font-size: 28px; }
+.card-img-placeholder { font-size: 36px; }
 
 /* Gradient overlay */
 .card-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(10,3,0,.95) 0%, rgba(10,3,0,.2) 55%, transparent 80%);
+  background: linear-gradient(to top, rgba(10,3,0,.92) 0%, rgba(10,3,0,.18) 50%, transparent 75%);
   display: flex; flex-direction: column; justify-content: flex-end;
-  padding: 7px 8px;
+  padding: 9px 10px;
 }
 .card-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 12px; font-weight: 700; color: #FAF6F1;
-  line-height: 1.2; margin-bottom: 3px;
+  font-size: 15px; font-weight: 700; color: #FAF6F1;
+  line-height: 1.2; margin-bottom: 4px;
   overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
-.card-zone-price { display: flex; flex-direction: column; gap: 1px; }
-.card-zone  { display: none; }
-.card-price { font-size: 11px; font-weight: 700; color: #FAF6F1; white-space: nowrap; }
-.card-price span { font-size: 9px; font-weight: 400; color: rgba(250,246,241,.65); }
+.card-zone-price { display: flex; justify-content: space-between; align-items: flex-end; gap: 4px; }
+.card-zone  { font-size: 10px; color: rgba(250,246,241,.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-price { font-size: 13px; font-weight: 700; color: #FAF6F1; white-space: nowrap; flex-shrink: 0; }
+.card-price span { font-size: 10px; font-weight: 400; color: rgba(250,246,241,.65); }
 
 /* Badges */
 .card-badge {
-  position: absolute; top: 6px; left: 6px;
-  padding: 3px 7px; border-radius: 100px;
-  font-size: 9px; font-weight: 600;
+  position: absolute; top: 7px; left: 7px;
+  padding: 3px 8px; border-radius: 100px;
+  font-size: 10px; font-weight: 600;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 .badge-vann { background: rgba(212,83,26,.88); color: #fff; }
 .badge-lwe  { background: rgba(26,92,56,.88);  color: #fff; }
 .badge-verified {
-  position: absolute; top: 6px; right: 6px;
-  background: rgba(255,255,255,.9); color: var(--green);
-  font-size: 9px; font-weight: 600; padding: 3px 6px;
+  position: absolute; top: 7px; right: 7px;
+  background: rgba(255,255,255,.92); color: var(--green);
+  font-size: 10px; font-weight: 600; padding: 3px 7px;
   border-radius: 100px;
 }
 
-/* Stats row — kache nan 4-kolòn */
-.card-stats-row { display: none; }
+/* Stats row */
+.card-stats-row {
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 8px 6px 6px; border-bottom: 1px solid var(--border);
+}
+.card-stat-item {
+  display: flex; flex-direction: column; align-items: center;
+  font-size: 10px; color: var(--muted); line-height: 1.2;
+}
+.card-stat-item b { font-size: 13px; font-weight: 700; color: var(--brown); display: block; }
 
 /* Kept for compat */
 .card-body { padding: 15px; }
@@ -723,9 +733,11 @@ html, body {
 
 .info-modal {
   background: #fff; border-radius: 28px 28px 0 0;
-  padding: 28px 24px 40px; width: 100%; max-width: 480px;
+  padding: 22px 18px 36px; width: 100%; max-width: 480px;
   position: relative; transform: translateY(30px);
   transition: transform .3s cubic-bezier(.22,.68,0,1.2);
+  max-height: 88dvh; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .info-modal-bg.open .info-modal { transform: translateY(0); }
 
@@ -737,12 +749,15 @@ html, body {
   cursor: pointer; color: var(--muted);
 }
 
-.info-logo {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 28px; font-weight: 700; color: var(--brown);
-  margin-bottom: 2px;
+.info-logo { margin-bottom: 2px; }
+.info-logo-img {
+  display: block;
+  width: 170px;
+  height: 110px;
+  object-fit: cover;
+  object-position: center center;
+  margin: 0 auto;
 }
-.info-logo span { color: var(--orange); }
 .info-version { font-size: 11px; color: var(--muted); margin-bottom: 24px; }
 
 .info-section { margin-bottom: 20px; }
@@ -774,12 +789,17 @@ html, body {
 }
 .info-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .info-chip  { font-size: 12px; background: var(--cream2); color: var(--brown); border-radius: 20px; padding: 5px 11px; font-weight: 500; }
-.info-plans { display: flex; gap: 8px; }
-.info-plan  { flex: 1; background: var(--cream2); border-radius: 12px; padding: 10px 10px; text-align: center; border: 1.5px solid var(--border); }
+.info-plans { display: flex; gap: 6px; }
+.info-plan  {
+  flex: 1; min-width: 0;
+  background: var(--cream2); border-radius: 12px;
+  padding: 10px 6px; text-align: center;
+  border: 1.5px solid var(--border);
+}
 .info-plan--premium { border-color: var(--orange); background: rgba(229,115,53,.08); }
 .info-plan--agent   { border-color: var(--brown);  background: rgba(30,14,8,.06); }
-.info-plan-name { font-weight: 700; font-size: 13px; color: var(--brown); }
-.info-plan-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+.info-plan-name { font-weight: 700; font-size: 12px; color: var(--brown); }
+.info-plan-desc { font-size: 10px; color: var(--muted); margin-top: 3px; line-height: 1.45; word-break: break-word; }
 
 /* ── TOAST ───────────────────────────────────────────────── */
 .toast {
@@ -1084,3 +1104,27 @@ html, body {
 .audio-dur { font-size: 11px; }
 .chat-bubble--mine   .audio-dur { color: rgba(255,255,255,.65); }
 .chat-bubble--theirs .audio-dur { color: var(--muted); }
+
+/* ── Card like / share actions ────────────────────── */
+.card-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  background: var(--white);
+}
+
+.card-like-btn, .card-share-btn {
+  display: flex; align-items: center; gap: 3px;
+  background: none; border: none; cursor: pointer;
+  padding: 5px 7px; border-radius: 8px;
+  font-size: 11px; font-weight: 600;
+  color: var(--muted);
+  transition: color .14s, background .14s;
+  -webkit-tap-highlight-color: transparent;
+}
+.card-like-btn:active  { color: var(--red);    background: var(--red-lt); }
+.card-share-btn:active { color: var(--orange); background: var(--orange-lt); }
+.card-like-btn.liked   { color: var(--red); }
+.card-like-btn svg, .card-share-btn svg { width: 14px; height: 14px; flex-shrink: 0; }

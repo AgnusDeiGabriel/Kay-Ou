@@ -90,7 +90,8 @@ const API = {
       const fd = new FormData();
       for (const f of files) fd.append('files', f);
       return API.req('POST', `/houses/${houseId}/images`, fd, true);
-    }
+    },
+    toggleLike: (id) => API.req('POST', `/houses/${id}/like`),
   },
 
   // ── PAYMENTS ─────────────────────────────────────────────

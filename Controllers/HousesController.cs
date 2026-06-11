@@ -100,6 +100,15 @@ public class HousesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Toggle like sou yon kay</summary>
+    [HttpPost("{id}/like")]
+    [Authorize]
+    public async Task<IActionResult> ToggleLike(int id)
+    {
+        var result = await _houses.ToggleLikeAsync(id, CurrentUserId!.Value);
+        return result.Success ? Ok(result) : NotFound(result);
+    }
+
     /// <summary>Admin: apwouve oswa rejte yon kay</summary>
     [HttpPatch("{id}/review")]
     [Authorize(Roles = "Admin")]

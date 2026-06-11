@@ -1071,6 +1071,22 @@ function renderHouses(list) {
           <div class="card-stat-item"><b>${h.beny}</b>Beny</div>
           <div class="card-stat-item"><b>${h.superficie}</b>m²</div>
         </div>
+        <div class="card-actions-row">
+          <button class="card-like-btn${h.isLikedByCurrentUser ? ' liked' : ''}"
+            data-id="${h.id}" data-liked="${h.isLikedByCurrentUser}" data-count="${h.likeCount}"
+            onclick="toggleLike(event,this)" title="Like">
+            <svg viewBox="0 0 24 24" fill="${h.isLikedByCurrentUser ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <span>${h.likeCount}</span>
+          </button>
+          <button class="card-share-btn" data-id="${h.id}" onclick="shareHouse(event,this)" title="Pataje">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+          </button>
+        </div>
       </div>`;
   }).join('');
 }
@@ -1485,6 +1501,56 @@ async function changePassword() {
     toast(e.message, 'err');
   } finally {
     setLoading('ep-pw-btn', false);
+  }
+}
+
+// ── LIKE / SHARE ──────────────────────────────────────────────────────────────
+
+async function toggleLike(e, btn) {
+  e.stopPropagation();
+  if (!API.isLoggedIn()) { showAuth(); return; }
+
+  const houseId  = +btn.dataset.id;
+  const wasLiked = btn.dataset.liked === 'true';
+  const count    = +btn.dataset.count;
+  const newCount = wasLiked ? count - 1 : count + 1;
+
+  // Optimistic update
+  btn.dataset.liked = String(!wasLiked);
+  btn.dataset.count = String(newCount);
+  btn.classList.toggle('liked', !wasLiked);
+  btn.querySelector('svg').setAttribute('fill', !wasLiked ? 'currentColor' : 'none');
+  btn.querySelector('span').textContent = newCount;
+
+  try {
+    const res = await API.houses.toggleLike(houseId);
+    btn.dataset.liked = String(res.data.isLiked);
+    btn.dataset.count = String(res.data.likeCount);
+    btn.classList.toggle('liked', res.data.isLiked);
+    btn.querySelector('svg').setAttribute('fill', res.data.isLiked ? 'currentColor' : 'none');
+    btn.querySelector('span').textContent = res.data.likeCount;
+  } catch (err) {
+    btn.dataset.liked = String(wasLiked);
+    btn.dataset.count = String(count);
+    btn.classList.toggle('liked', wasLiked);
+    btn.querySelector('svg').setAttribute('fill', wasLiked ? 'currentColor' : 'none');
+    btn.querySelector('span').textContent = count;
+    toast(err.message, 'err');
+  }
+}
+
+async function shareHouse(e, btn) {
+  e.stopPropagation();
+  const houseId = +btn.dataset.id;
+  const h = State.houses.find(x => x.id === houseId);
+  const title = h ? `${h.titre} — ${h.zone}` : 'KayOu';
+  const url   = `${window.location.origin}/?house=${houseId}`;
+
+  if (navigator.share) {
+    try { await navigator.share({ title, url }); } catch {}
+  } else {
+    try { await navigator.clipboard.writeText(url); toast('Lyen kopye!', 'ok'); }
+    catch { toast(url, 'info', 5000); }
   }
 }
 

@@ -133,6 +133,8 @@ public class HouseDto
     public UserDto Owner { get; set; } = null!;
     public List<string> Images { get; set; } = new();
     public bool UserHasPaid { get; set; }
+    public int LikeCount { get; set; }
+    public bool IsLikedByCurrentUser { get; set; }
 }
 
 public class AdminHouseActionRequest

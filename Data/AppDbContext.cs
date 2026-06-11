@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<HouseLike> HouseLikes => Set<HouseLike>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +79,25 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(m => m.HouseId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // HouseLike -> User (no cascade to avoid multiple paths)
+        modelBuilder.Entity<HouseLike>()
+            .HasOne(l => l.User)
+            .WithMany()
+            .HasForeignKey(l => l.UserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // HouseLike -> House (cascade when house deleted)
+        modelBuilder.Entity<HouseLike>()
+            .HasOne(l => l.House)
+            .WithMany(h => h.Likes)
+            .HasForeignKey(l => l.HouseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // One like per user per house
+        modelBuilder.Entity<HouseLike>()
+            .HasIndex(l => new { l.UserId, l.HouseId })
+            .IsUnique();
 
         // Seed Admin user (password: Admin@123)
         modelBuilder.Entity<User>().HasData(new User

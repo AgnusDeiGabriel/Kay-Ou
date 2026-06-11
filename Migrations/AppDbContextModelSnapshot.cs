@@ -118,6 +118,33 @@ namespace KayAyiti.Migrations
                     b.ToTable("HouseImages");
                 });
 
+            modelBuilder.Entity("KayAyiti.Models.HouseLike", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("HouseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseId");
+
+                    b.HasIndex("UserId", "HouseId")
+                        .IsUnique();
+
+                    b.ToTable("HouseLikes");
+                });
+
             modelBuilder.Entity("KayAyiti.Models.Message", b =>
                 {
                     b.Property<int>("Id")
@@ -349,6 +376,25 @@ namespace KayAyiti.Migrations
                     b.Navigation("House");
                 });
 
+            modelBuilder.Entity("KayAyiti.Models.HouseLike", b =>
+                {
+                    b.HasOne("KayAyiti.Models.House", "House")
+                        .WithMany("Likes")
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KayAyiti.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("House");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("KayAyiti.Models.Message", b =>
                 {
                     b.HasOne("KayAyiti.Models.House", "House")
@@ -409,6 +455,8 @@ namespace KayAyiti.Migrations
             modelBuilder.Entity("KayAyiti.Models.House", b =>
                 {
                     b.Navigation("Images");
+
+                    b.Navigation("Likes");
 
                     b.Navigation("Payments");
                 });

@@ -15,6 +15,7 @@ public interface IHouseService
     Task<ApiResponse<HouseDto>> AdminActionAsync(int id, AdminHouseActionRequest req, int adminId);
     Task<ApiResponse<List<string>>> UploadImagesAsync(int houseId, IFormFileCollection files, int userId);
     Task<ApiResponse<List<HouseDto>>> GetMyHousesAsync(int userId);
+    Task<ApiResponse<object>> ToggleLikeAsync(int houseId, int userId);
 }
 
 public class HouseService : IHouseService
@@ -104,9 +105,26 @@ public class HouseService : IHouseService
             .Take(filter.PageSize)
             .ToListAsync();
 
+        var houseIds = houses.Select(h => h.Id).ToList();
+        var likeCounts = await _db.HouseLikes
+            .Where(l => houseIds.Contains(l.HouseId))
+            .GroupBy(l => l.HouseId)
+            .Select(g => new { HouseId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.HouseId, x => x.Count);
+
+        HashSet<int> userLikedSet = currentUserId.HasValue
+            ? (await _db.HouseLikes
+                .Where(l => houseIds.Contains(l.HouseId) && l.UserId == currentUserId.Value)
+                .Select(l => l.HouseId)
+                .ToListAsync()).ToHashSet()
+            : new HashSet<int>();
+
         var items = new List<HouseDto>();
         foreach (var h in houses)
-            items.Add(await MapHouseAsync(h, currentUserId, isAdmin));
+        {
+            likeCounts.TryGetValue(h.Id, out var lc);
+            items.Add(await MapHouseAsync(h, currentUserId, isAdmin, lc, userLikedSet.Contains(h.Id)));
+        }
 
         return ApiResponse<PagedResult<HouseDto>>.Ok(new PagedResult<HouseDto>
         {
@@ -127,7 +145,11 @@ public class HouseService : IHouseService
         if (house is null)
             return ApiResponse<HouseDto>.Fail("Kay pa jwenn.");
 
-        return ApiResponse<HouseDto>.Ok(await MapHouseAsync(house, currentUserId, isAdmin));
+        var likeCount = await _db.HouseLikes.CountAsync(l => l.HouseId == id);
+        var isLiked   = currentUserId.HasValue &&
+                        await _db.HouseLikes.AnyAsync(l => l.HouseId == id && l.UserId == currentUserId.Value);
+
+        return ApiResponse<HouseDto>.Ok(await MapHouseAsync(house, currentUserId, isAdmin, likeCount, isLiked));
     }
 
     public async Task<ApiResponse<HouseDto>> UpdateAsync(
@@ -264,16 +286,27 @@ public class HouseService : IHouseService
             .OrderByDescending(h => h.CreatedAt)
             .ToListAsync();
 
+        var houseIds = houses.Select(h => h.Id).ToList();
+        var likeCounts = await _db.HouseLikes
+            .Where(l => houseIds.Contains(l.HouseId))
+            .GroupBy(l => l.HouseId)
+            .Select(g => new { HouseId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.HouseId, x => x.Count);
+
         var items = new List<HouseDto>();
         foreach (var h in houses)
-            items.Add(await MapHouseAsync(h, userId, isAdmin: false));
+        {
+            likeCounts.TryGetValue(h.Id, out var lc);
+            items.Add(await MapHouseAsync(h, userId, isAdmin: false, lc, false));
+        }
 
         return ApiResponse<List<HouseDto>>.Ok(items);
     }
 
     // ─── Mapper ──────────────────────────────────────────────────────────────
 
-    private async Task<HouseDto> MapHouseAsync(House h, int? currentUserId, bool isAdmin = false)
+    private async Task<HouseDto> MapHouseAsync(House h, int? currentUserId, bool isAdmin = false,
+        int likeCount = 0, bool isLiked = false)
     {
         bool isOwner = currentUserId.HasValue && currentUserId == h.UserId;
 
@@ -310,7 +343,34 @@ public class HouseService : IHouseService
             CreatedAt = h.CreatedAt,
             Owner = owner,
             Images = h.Images.Select(i => i.ImageUrl).ToList(),
-            UserHasPaid = hasPaid || isOwner
+            UserHasPaid = hasPaid || isOwner,
+            LikeCount = likeCount,
+            IsLikedByCurrentUser = isLiked
         };
+    }
+
+    public async Task<ApiResponse<object>> ToggleLikeAsync(int houseId, int userId)
+    {
+        var house = await _db.Houses.FindAsync(houseId);
+        if (house is null) return ApiResponse<object>.Fail("Kay pa jwenn.");
+
+        var existing = await _db.HouseLikes
+            .FirstOrDefaultAsync(l => l.HouseId == houseId && l.UserId == userId);
+
+        bool isLiked;
+        if (existing != null)
+        {
+            _db.HouseLikes.Remove(existing);
+            isLiked = false;
+        }
+        else
+        {
+            _db.HouseLikes.Add(new HouseLike { HouseId = houseId, UserId = userId });
+            isLiked = true;
+        }
+
+        await _db.SaveChangesAsync();
+        var likeCount = await _db.HouseLikes.CountAsync(l => l.HouseId == houseId);
+        return ApiResponse<object>.Ok(new { isLiked, likeCount });
     }
 }

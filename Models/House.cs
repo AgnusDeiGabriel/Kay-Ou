@@ -46,6 +46,7 @@ public class House
     // Navigation
     public ICollection<HouseImage> Images { get; set; } = new List<HouseImage>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+    public ICollection<HouseLike> Likes { get; set; } = new List<HouseLike>();
 }
 
 public class HouseImage
