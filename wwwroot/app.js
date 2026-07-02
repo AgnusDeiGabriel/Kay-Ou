@@ -59,6 +59,7 @@ function showAuth() {
 
 function hideAuth(animated = true) {
   startUnreadPoll();
+  initCallHub();
   if (!animated) {
     goTo('home');
     loadHouses();
@@ -116,6 +117,7 @@ function initSplash() {
     if (!user || !user.id || !user.email) { API.clearAuth(); return; }
     if (API.isAdmin()) { window.location.href = '/admin'; return; }
     updateHomeUser();
+    initCallHub();
     hideAuth(false);
     // hideAuth rele startUnreadPoll() — pa bezwen rele ankò
   }
@@ -879,7 +881,12 @@ function renderConversations(list) {
            data-nom="${escHtml(c.otherUserNom)}"
            data-owner="${c.isCurrentUserOwner ? 'true' : 'false'}"
            onclick="openChatFromConv(this)">
-        <div class="conv-av">${avatarHtml}</div>
+        <div class="conv-av"
+             data-nom="${escHtml(c.otherUserNom)}"
+             data-avatar="${escHtml(c.otherUserAvatarUrl||'')}"
+             data-hid="${c.houseId}"
+             data-uid="${c.otherUserId}"
+             onclick="openProfilePopup(event,this)">${avatarHtml}</div>
         <div class="conv-body">
           <div class="conv-top">
             <span class="conv-name">${escHtml(c.otherUserNom)}</span>
@@ -1408,6 +1415,436 @@ function setLoading(btnId, on) {
 
 function openInfoModal()  { $('info-modal').classList.add('open'); }
 function closeInfoModal() { $('info-modal').classList.remove('open'); }
+
+// ── IN-APP CALLING (SignalR + WebRTC) ────────────────────────
+
+const CallState = {
+  conn:          null,   // SignalR connection
+  peerConn:      null,   // RTCPeerConnection
+  localStream:   null,
+  remoteStream:  null,
+  otherConnId:   null,   // connection ID of the other party
+  calleeUserId:  null,
+  ringCtx:       null,   // Web Audio context for ringtone
+  ringTimer:     null,
+  callTimer:     null,
+  callSecs:      0,
+  isCaller:      false,
+};
+
+const STUN = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+// ── SignalR connection ────────────────────────────────────────
+
+async function initCallHub() {
+  if (!API.isLoggedIn()) return;
+  const user = API.getUser();
+  if (!user?.id) return;
+
+  CallState.conn = new signalR.HubConnectionBuilder()
+    .withUrl('/callhub')
+    .withAutomaticReconnect()
+    .build();
+
+  // Incoming call from someone
+  CallState.conn.on('IncomingCall', (callerConnId, callerName, callerAvatar) => {
+    CallState.otherConnId = callerConnId;
+    CallState.isCaller    = false;
+    showIncomingCall(callerName, callerAvatar);
+  });
+
+  // Callee accepted our call
+  CallState.conn.on('CallAccepted', async (calleeConnId) => {
+    CallState.otherConnId = calleeConnId;
+    stopRingtone();
+    $('call-out-status').textContent = 'Konekte...';
+    await startWebRTC(true);
+  });
+
+  // Callee declined
+  CallState.conn.on('CallDeclined', () => {
+    cleanupCall();
+    hideOutgoingCall();
+    toast('Apel refize.', 'info', 2000);
+  });
+
+  // Other party ended the call (pandan apel aktif)
+  CallState.conn.on('CallEnded', () => {
+    cleanupCall();
+    hideOutgoingCall();
+    hideIncomingCall();
+  });
+
+  // Caller anile anvan callee a aksepte
+  CallState.conn.on('CallCancelled', () => {
+    cleanupCall();
+    hideIncomingCall();
+  });
+
+  // WebRTC signaling
+  CallState.conn.on('ReceiveOffer', async (fromConnId, sdp) => {
+    CallState.otherConnId = fromConnId;
+    await handleOffer(sdp);
+  });
+  CallState.conn.on('ReceiveAnswer', async (sdp) => {
+    await CallState.peerConn?.setRemoteDescription(JSON.parse(sdp));
+  });
+  CallState.conn.on('ReceiveIce', async (candidate) => {
+    try { await CallState.peerConn?.addIceCandidate(JSON.parse(candidate)); } catch {}
+  });
+
+  try {
+    await CallState.conn.start();
+    await CallState.conn.invoke('JoinUserGroup', String(user.id));
+  } catch (e) {
+    console.warn('CallHub connect failed:', e);
+  }
+}
+
+// ── Outgoing call ─────────────────────────────────────────────
+
+async function startCall(userId, nom, avatarUrl) {
+  if (!CallState.conn || CallState.conn.state !== signalR.HubConnectionState.Connected) {
+    toast('Koneksyon apel pa disponib. Eseye ankò.', 'err'); return;
+  }
+  CallState.calleeUserId = userId;
+  CallState.isCaller     = true;
+  CallState.otherConnId  = null;
+
+  showOutgoingCall(nom, avatarUrl);
+  playRingtone(false);
+
+  const me = API.getUser();
+  await CallState.conn.invoke('CallUser', String(userId), me.nom, me.avatarUrl || '');
+}
+
+function showOutgoingCall(nom, avatarUrl) {
+  renderCallAv($('call-out-av'), nom, avatarUrl);
+  $('call-out-name').textContent   = nom;
+  $('call-out-status').textContent = 'Ap rele...';
+  $('call-timer').textContent      = '';
+  $('call-out-overlay').classList.add('open');
+}
+
+function hideOutgoingCall() {
+  $('call-out-overlay').classList.remove('open');
+}
+
+async function endCallOut() {
+  stopRingtone();
+  stopCallTimer();
+  const connId     = CallState.otherConnId;
+  const calleeId   = CallState.calleeUserId;
+  cleanupCall();
+  if (connId) {
+    // Apel aktif — notifye lòt côté dirèkteman
+    try { await CallState.conn.invoke('EndCall', connId); } catch {}
+  } else if (calleeId) {
+    // Caller anile anvan akseptasyon — voye pa group
+    try { await CallState.conn.invoke('CancelCall', String(calleeId)); } catch {}
+  }
+  hideOutgoingCall();
+}
+
+// ── Incoming call ─────────────────────────────────────────────
+
+function showIncomingCall(nom, avatarUrl) {
+  renderCallAv($('call-in-av'), nom, avatarUrl);
+  $('call-in-name').textContent = nom;
+  $('call-in-overlay').classList.add('open');
+  playRingtone(true);
+}
+
+function hideIncomingCall() {
+  $('call-in-overlay').classList.remove('open');
+  stopRingtone();
+}
+
+async function acceptCallIn() {
+  const nom       = $('call-in-name').textContent;
+  const avatarSrc = $('call-in-av').querySelector('img')?.src || '';
+  hideIncomingCall();
+  showOutgoingCall(nom, avatarSrc);
+  $('call-out-status').textContent = 'Konekte...';
+  // Prepare peerConn FIRST so it's ready when offer arrives
+  await startWebRTC(false);
+  await CallState.conn.invoke('AcceptCall', CallState.otherConnId);
+}
+
+async function declineCallIn() {
+  const connId = CallState.otherConnId;  // capture anvan cleanupCall efase l
+  cleanupCall();
+  hideIncomingCall();
+  if (connId) {
+    try { await CallState.conn.invoke('DeclineCall', connId); } catch {}
+  }
+}
+
+// ── WebRTC ────────────────────────────────────────────────────
+
+let _pendingOffer = null;  // offer ki rive anvan peerConn pa prè
+
+async function startWebRTC(isCaller) {
+  // HTTPS obligatwa sou telefòn — HTTP bloke getUserMedia
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    toast('Apel vwa bezwen HTTPS. Konekte via https:// pou mikwofòn fonksyone.', 'err', 7000);
+    hideOutgoingCall(); return;
+  }
+
+  // Navigatè pa sipòte getUserMedia
+  if (!navigator.mediaDevices?.getUserMedia) {
+    toast('Navigatè ou pa sipòte apel vwa. Eseye Chrome oswa Safari modèn.', 'err', 6000);
+    hideOutgoingCall(); return;
+  }
+
+  try {
+    CallState.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch (e) {
+    const msg = e?.name === 'NotAllowedError'  ? 'Pèmisyon mikwofòn refize. Al nan Paramèt › Sit › Mikwofòn epi otorize li.' :
+                e?.name === 'NotFoundError'     ? 'Pa gen mikwofòn detekte sou aparèy ou.' :
+                e?.name === 'NotReadableError'  ? 'Mikwofòn an itilize pa yon lòt aplikasyon. Fèmen lòt app yo epi eseye ankò.' :
+                e?.name === 'SecurityError'     ? 'Apel vwa bloke sou HTTP. Itilize https:// pou konekte.' :
+                e?.name === 'AbortError'        ? 'Mikwofòn pa disponib. Eseye fèmen lòt onglet yo.' :
+                `Mikwofòn pa ka konekte (${e?.name ?? 'enkoni'}). Eseye ankò.`;
+    toast(msg, 'err', 7000);
+    hideOutgoingCall(); return;
+  }
+
+  CallState.peerConn = new RTCPeerConnection(STUN);
+  CallState.localStream.getTracks().forEach(t => CallState.peerConn.addTrack(t, CallState.localStream));
+
+  // Remote audio element
+  let remoteAudio = document.getElementById('call-remote-audio');
+  if (!remoteAudio) {
+    remoteAudio = document.createElement('audio');
+    remoteAudio.id = 'call-remote-audio';
+    remoteAudio.autoplay = true;
+    document.body.appendChild(remoteAudio);
+  }
+
+  CallState.peerConn.ontrack = e => {
+    remoteAudio.srcObject = e.streams[0];
+  };
+
+  CallState.peerConn.onicecandidate = async e => {
+    if (e.candidate && CallState.otherConnId) {
+      try { await CallState.conn.invoke('SendIce', CallState.otherConnId, JSON.stringify(e.candidate)); } catch {}
+    }
+  };
+
+  CallState.peerConn.onconnectionstatechange = () => {
+    const s = CallState.peerConn?.connectionState;
+    if (s === 'connected') {
+      $('call-out-status').textContent = 'An apel';
+      startCallTimer();
+      showCallControls();
+    } else if (s === 'failed' || s === 'disconnected') {
+      toast('Koneksyon apel kase.', 'err');
+      endCallOut();
+    }
+  };
+
+  if (isCaller) {
+    const offer = await CallState.peerConn.createOffer();
+    await CallState.peerConn.setLocalDescription(offer);
+    await CallState.conn.invoke('SendOffer', CallState.otherConnId, JSON.stringify(offer));
+  } else if (_pendingOffer) {
+    // Offer te rive anvan peerConn — aplike l kounye a
+    const queued = _pendingOffer;
+    _pendingOffer = null;
+    await handleOffer(queued);
+  }
+}
+
+async function handleOffer(sdp) {
+  if (!CallState.peerConn) {
+    // peerConn poko prè — mete offer an atant
+    _pendingOffer = sdp;
+    return;
+  }
+  await CallState.peerConn.setRemoteDescription(JSON.parse(sdp));
+  const answer = await CallState.peerConn.createAnswer();
+  await CallState.peerConn.setLocalDescription(answer);
+  await CallState.conn.invoke('SendAnswer', CallState.otherConnId, JSON.stringify(answer));
+}
+
+function cleanupCall() {
+  stopCallTimer();
+  stopRingtone();
+  hideCallControls();
+  _pendingOffer = null;
+  CallState.localStream?.getTracks().forEach(t => t.stop());
+  CallState.peerConn?.close();
+  CallState.peerConn     = null;
+  CallState.localStream  = null;
+  CallState.otherConnId  = null;
+  CallState.calleeUserId = null;
+  CallState.isCaller     = false;
+}
+
+// ── Kontwòl apel aktif ────────────────────────────────────────
+
+function showCallControls() {
+  $('call-ctrl-menu').classList.add('visible');
+  // Reset eta bouton yo
+  $('ctrl-mic').classList.remove('active');
+  $('ctrl-mic-lbl').textContent = 'Sourdine';
+  $('ctrl-spk').classList.remove('active');
+  $('ctrl-spk-lbl').textContent = 'Haut-parl.';
+  $('ctrl-hold').classList.remove('active');
+  $('ctrl-hold-lbl').textContent = 'Attente';
+}
+
+function hideCallControls() {
+  $('call-ctrl-menu')?.classList.remove('visible');
+}
+
+function toggleMic() {
+  // Sible RTCRtpSender dirèkteman — sa ki reyèlman voye son nan WebRTC
+  const sender = CallState.peerConn?.getSenders().find(s => s.track?.kind === 'audio');
+  const track  = sender?.track ?? CallState.localStream?.getAudioTracks()[0];
+  if (!track) return;
+
+  track.enabled = !track.enabled;
+  const muted   = !track.enabled;
+
+  $('ctrl-mic').classList.toggle('active', muted);
+  $('ctrl-mic-lbl').textContent = muted ? 'Aktive' : 'Sourdine';
+  $('ctrl-mic-icon').innerHTML  = muted
+    ? '<path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>'
+    : '<path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>';
+}
+
+function toggleSpeaker() {
+  const audio  = document.getElementById('call-remote-audio');
+  if (!audio) return;
+  const active = $('ctrl-spk').classList.toggle('active');
+  $('ctrl-spk-lbl').textContent = active ? 'Normal' : 'Haut-parl.';
+  if (audio.setSinkId) {
+    audio.setSinkId(active ? 'default' : '').catch(() => {});
+  }
+}
+
+function toggleHold() {
+  const onHold    = $('ctrl-hold').classList.toggle('active');
+  const micMuted  = $('ctrl-mic').classList.contains('active');
+  $('ctrl-hold-lbl').textContent = onHold ? 'Reprann' : 'Attente';
+
+  // Sible sendè yo dirèkteman, respekte eta mic manyèl la
+  const senders = CallState.peerConn?.getSenders() ?? [];
+  senders.forEach(s => {
+    if (!s.track) return;
+    if (onHold) {
+      s.track.enabled = false;
+    } else {
+      // Pandan reprann: reyaktive sèlman si mic pa t muted manyèlman
+      s.track.enabled = s.track.kind === 'audio' ? !micMuted : true;
+    }
+  });
+}
+
+// ── Ringtone (Web Audio) ──────────────────────────────────────
+
+function playRingtone(incoming) {
+  stopRingtone();
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    CallState.ringCtx = ctx;
+    const freq1 = incoming ? 480 : 440;
+    const freq2 = incoming ? 620 : 480;
+
+    function beep() {
+      if (!CallState.ringCtx) return;
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc1.frequency.value = freq1;
+      osc2.frequency.value = freq2;
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
+      osc1.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
+      osc1.start(); osc2.start();
+      osc1.stop(ctx.currentTime + 0.8);
+      osc2.stop(ctx.currentTime + 0.8);
+    }
+
+    beep();
+    CallState.ringTimer = setInterval(beep, 2000);
+  } catch {}
+}
+
+function stopRingtone() {
+  if (CallState.ringTimer) { clearInterval(CallState.ringTimer); CallState.ringTimer = null; }
+  if (CallState.ringCtx)  { CallState.ringCtx.close().catch(() => {}); CallState.ringCtx = null; }
+}
+
+// ── Call timer ────────────────────────────────────────────────
+
+function startCallTimer() {
+  CallState.callSecs = 0;
+  $('call-timer').textContent = '0:00';
+  CallState.callTimer = setInterval(() => {
+    CallState.callSecs++;
+    $('call-timer').textContent = fmtRecTime(CallState.callSecs);
+  }, 1000);
+}
+
+function stopCallTimer() {
+  if (CallState.callTimer) { clearInterval(CallState.callTimer); CallState.callTimer = null; }
+  CallState.callSecs = 0;
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+
+function renderCallAv(el, nom, avatarUrl) {
+  if (avatarUrl) {
+    el.innerHTML = `<img src="${avatarUrl}" alt="">`;
+  } else {
+    el.innerHTML = '';
+    el.textContent = (nom || '?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  }
+}
+
+// ── PROFILE POPUP (konvèsasyon) ──────────────────────────────
+
+const ProfilePopup = { houseId: null, userId: null };
+
+function openProfilePopup(e, el) {
+  e.stopPropagation();
+  const nom      = el.dataset.nom;
+  const avatarUrl= el.dataset.avatar;
+  ProfilePopup.houseId = el.dataset.hid;
+  ProfilePopup.userId  = el.dataset.uid;
+
+  const avEl = $('pp-av');
+  if (avatarUrl) {
+    avEl.innerHTML = `<img src="${avatarUrl}" alt="">`;
+  } else {
+    avEl.innerHTML = '';
+    avEl.textContent = nom.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  }
+  $('pp-name').textContent = nom;
+  $('pp-overlay').classList.add('open');
+}
+
+function closeProfilePopup() {
+  $('pp-overlay').classList.remove('open');
+}
+
+function profilePopupChat() {
+  closeProfilePopup();
+  if (!ProfilePopup.houseId || !ProfilePopup.userId) return;
+  const nom = $('pp-name').textContent;
+  openChatFromConversation(+ProfilePopup.houseId, +ProfilePopup.userId, nom, false);
+}
+
+async function profilePopupCall() {
+  closeProfilePopup();
+  if (!ProfilePopup.userId) return;
+  const nom       = $('pp-name').textContent;
+  const avatarUrl = $('pp-av').querySelector('img')?.src || '';
+  await startCall(ProfilePopup.userId, nom, avatarUrl);
+}
 
 // ── EDIT PROFILE ─────────────────────────────────────────────────────────────
 

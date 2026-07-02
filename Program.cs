@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using KayAyiti.Data;
 using KayAyiti.Helpers;
+using KayAyiti.Hubs;
 using KayAyiti.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -98,6 +99,7 @@ if (!string.IsNullOrEmpty(cfg["OAuth:Apple:ClientId"]))
         });
 }
 
+builder.Services.AddSignalR();
 builder.Services.AddAuthorization();
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -182,5 +184,6 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<CallHub>("/callhub");
 
 app.Run();

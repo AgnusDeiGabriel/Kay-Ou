@@ -333,7 +333,6 @@ C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\ref\KayAyiti.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\BouncyCastle.Cryptography.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\MailKit.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\MimeKit.dll
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\gfckmi1973-{0}-ogn4hu670c-ogn4hu670c.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\AspNet.Security.OAuth.Apple.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.Facebook.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.Google.dll
@@ -342,12 +341,13 @@ C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Google.Apis.Auth.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\Google.Apis.Core.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\System.Management.dll
 C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\runtimes\win\lib\net7.0\System.Management.dll
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\hlxosogbtp-{0}-o4q5d6beth-o4q5d6beth.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\cqqk8i3dce-{0}-98et1zp6of-98et1zp6of.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\g24apfop1e-{0}-knnoc3emi2-knnoc3emi2.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\zmlnsuj932-{0}-3l8fmyhrv4-3l8fmyhrv4.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\56bex7oijr-{0}-pcmils0a9k-pcmils0a9k.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\frfrv30u7a-{0}-230w0p68zh-230w0p68zh.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-ercbcgmnzp-ercbcgmnzp.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-lkdbq899o0-lkdbq899o0.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-dz3iwx8daw-dz3iwx8daw.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\hlxosogbtp-{0}-tcuu39i5b7-tcuu39i5b7.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\cqqk8i3dce-{0}-usnk7meps1-usnk7meps1.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\gfckmi1973-{0}-d4sdtjfo6s-d4sdtjfo6s.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-ehq91yo6x1-ehq91yo6x1.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-ji8p6vk0a1-ji8p6vk0a1.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-uotftxldso-uotftxldso.gz
