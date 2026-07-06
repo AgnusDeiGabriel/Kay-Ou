@@ -14,6 +14,7 @@ WORKDIR /app
 
 # Kreye dosye pou uploads
 RUN mkdir -p wwwroot/uploads/houses wwwroot/uploads/payments
+RUN mkdir -p private_uploads/kyc-id private_uploads/kyc-selfie private_uploads/house-ownership
 
 COPY --from=build /app/publish .
 

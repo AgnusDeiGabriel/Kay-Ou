@@ -66,6 +66,7 @@ public class UserDto
     public string? AvatarUrl { get; set; }
     public int? HouseCount { get; set; }
     public int? PaymentCount { get; set; }
+    public string KycStatus { get; set; } = "None";
 }
 
 // ─── HOUSE ───────────────────────────────────────────────────────────────────
@@ -135,12 +136,40 @@ public class HouseDto
     public bool UserHasPaid { get; set; }
     public int LikeCount { get; set; }
     public bool IsLikedByCurrentUser { get; set; }
+
+    // ─── Verifikasyon pwopriyete ─────────────────────────────────────────────
+    public string OwnershipStatus { get; set; } = "None";
+    public string? OwnershipRejectionReason { get; set; }
+    public bool HasTitleDeed { get; set; }
+    public bool HasMandate { get; set; }
+    public bool HasTaxReceipt { get; set; }
+
+    // Vizib sèlman pou pwopriyetè a ak admin (gate nan MapHouseAsync)
+    public string? AdresseComplete { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
 }
 
 public class AdminHouseActionRequest
 {
     [Required]
     [RegularExpression("^(Approved|Rejected)$")]
+    public string Action { get; set; } = string.Empty;
+
+    public string? Reason { get; set; }
+}
+
+public class SubmitOwnershipDocsRequest
+{
+    public string? AdresseComplete { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+}
+
+public class AdminOwnershipActionRequest
+{
+    [Required]
+    [RegularExpression("^(Verified|Rejected)$")]
     public string Action { get; set; } = string.Empty;
 
     public string? Reason { get; set; }
@@ -237,6 +266,73 @@ public class ConversationDto
     public int UnreadCount { get; set; }
     public bool IsLastMessageMine { get; set; }
     public bool IsCurrentUserOwner { get; set; }
+}
+
+// ─── KYC ─────────────────────────────────────────────────────────────────────
+
+public class KycStatusDto
+{
+    public string KycStatus { get; set; } = "None";
+    public string? KycRejectionReason { get; set; }
+    public DateTime? KycSubmittedAt { get; set; }
+    public DateTime? KycVerifiedAt { get; set; }
+}
+
+public class AdminKycUserDto
+{
+    public int UserId { get; set; }
+    public string Nom { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Telefon { get; set; } = string.Empty;
+    public string KycStatus { get; set; } = "None";
+    public string? KycRejectionReason { get; set; }
+    public DateTime? KycSubmittedAt { get; set; }
+}
+
+public class AdminKycActionRequest
+{
+    [Required]
+    [RegularExpression("^(Verified|Rejected)$")]
+    public string Action { get; set; } = string.Empty;
+
+    public string? Reason { get; set; }
+}
+
+// ─── RAPÒ ────────────────────────────────────────────────────────────────────
+
+public class CreateReportRequest
+{
+    [Required]
+    public int HouseId { get; set; }
+
+    [Required]
+    [RegularExpression("^(FauKay|SispisyonFwod|DejaVann|KontniInapwopriye|Lòt)$")]
+    public string Reason { get; set; } = string.Empty;
+
+    public string? Details { get; set; }
+}
+
+public class ReportDto
+{
+    public int Id { get; set; }
+    public int HouseId { get; set; }
+    public string HouseTitre { get; set; } = string.Empty;
+    public string ReporterNom { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public string? Details { get; set; }
+    public string Status { get; set; } = "Pending";
+    public string? AdminNote { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+}
+
+public class AdminReportActionRequest
+{
+    [Required]
+    [RegularExpression("^(Reviewed|Dismissed)$")]
+    public string Action { get; set; } = string.Empty;
+
+    public string? Note { get; set; }
 }
 
 // ─── PAGINATION ──────────────────────────────────────────────────────────────

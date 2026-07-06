@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using KayAyiti.Data;
 using KayAyiti.DTOs;
+using KayAyiti.Helpers;
 using KayAyiti.Models;
 
 namespace KayAyiti.Services;
@@ -16,6 +17,13 @@ public interface IHouseService
     Task<ApiResponse<List<string>>> UploadImagesAsync(int houseId, IFormFileCollection files, int userId);
     Task<ApiResponse<List<HouseDto>>> GetMyHousesAsync(int userId);
     Task<ApiResponse<object>> ToggleLikeAsync(int houseId, int userId);
+
+    // ─── Verifikasyon pwopriyete ───────────────────────────────────────────
+    Task<ApiResponse<HouseDto>> SubmitOwnershipDocsAsync(
+        int houseId, int userId, IFormFile titleDeed, IFormFile? mandate, IFormFile? taxReceipt,
+        string? adresseComplete, decimal? latitude, decimal? longitude);
+    Task<ApiResponse<PagedResult<HouseDto>>> GetOwnershipQueueAsync(int page, int pageSize, string? status);
+    Task<ApiResponse<HouseDto>> OwnershipAdminActionAsync(int houseId, AdminOwnershipActionRequest req, int adminId);
 }
 
 public class HouseService : IHouseService
@@ -205,6 +213,11 @@ public class HouseService : IHouseService
                 File.Delete(filePath);
         }
 
+        // Efase dokiman pwopriyete prive sou disk
+        PrivateFileHelper.DeleteIfExists(_env, "house-ownership", house.OwnershipTitleDeedPath);
+        PrivateFileHelper.DeleteIfExists(_env, "house-ownership", house.OwnershipMandatePath);
+        PrivateFileHelper.DeleteIfExists(_env, "house-ownership", house.OwnershipTaxReceiptPath);
+
         _db.Houses.Remove(house);
         await _db.SaveChangesAsync();
         return ApiResponse<bool>.Ok(true, "Kay efase avèk siksè.");
@@ -317,6 +330,10 @@ public class HouseService : IHouseService
 
         bool canSeeContact = isAdmin || isOwner || hasPaid;
 
+        // Adrès konplè + GPS se done sansib pou revizyon admin — pa gen dwa
+        // parèt pou nenpòt moun anlè pwopriyetè a ak admin (pa itilize pou kat piblik la).
+        bool canSeeOwnershipDetails = isAdmin || isOwner;
+
         var owner = AuthService.MapUser(h.User);
         if (!canSeeContact)
         {
@@ -345,7 +362,15 @@ public class HouseService : IHouseService
             Images = h.Images.Select(i => i.ImageUrl).ToList(),
             UserHasPaid = hasPaid || isOwner,
             LikeCount = likeCount,
-            IsLikedByCurrentUser = isLiked
+            IsLikedByCurrentUser = isLiked,
+            OwnershipStatus = h.OwnershipStatus,
+            OwnershipRejectionReason = h.OwnershipRejectionReason,
+            HasTitleDeed = h.OwnershipTitleDeedPath != null,
+            HasMandate = h.OwnershipMandatePath != null,
+            HasTaxReceipt = h.OwnershipTaxReceiptPath != null,
+            AdresseComplete = canSeeOwnershipDetails ? h.AdresseComplete : null,
+            Latitude = canSeeOwnershipDetails ? h.Latitude : null,
+            Longitude = canSeeOwnershipDetails ? h.Longitude : null
         };
     }
 
@@ -372,5 +397,117 @@ public class HouseService : IHouseService
         await _db.SaveChangesAsync();
         var likeCount = await _db.HouseLikes.CountAsync(l => l.HouseId == houseId);
         return ApiResponse<object>.Ok(new { isLiked, likeCount });
+    }
+
+    // ─── Verifikasyon pwopriyete ─────────────────────────────────────────────
+
+    private static readonly string[] OwnershipDocTypes =
+        { "image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf" };
+    private const long OwnershipMaxSize = 10 * 1024 * 1024;
+
+    public async Task<ApiResponse<HouseDto>> SubmitOwnershipDocsAsync(
+        int houseId, int userId, IFormFile titleDeed, IFormFile? mandate, IFormFile? taxReceipt,
+        string? adresseComplete, decimal? latitude, decimal? longitude)
+    {
+        var house = await _db.Houses
+            .Include(h => h.User)
+            .Include(h => h.Images)
+            .FirstOrDefaultAsync(h => h.Id == houseId);
+
+        if (house is null) return ApiResponse<HouseDto>.Fail("Kay pa jwenn.");
+        if (house.UserId != userId)
+            return ApiResponse<HouseDto>.Fail("Ou pa ka soumèt dokiman pou kay sa a.");
+        if (house.OwnershipStatus == "Verified")
+            return ApiResponse<HouseDto>.Fail("Pwopriyete kay sa a deja verifye.");
+
+        if (titleDeed is null || titleDeed.Length == 0)
+            return ApiResponse<HouseDto>.Fail("Ou dwe voye tit pwopriyete a oswa kontra vant lan.");
+
+        foreach (var file in new[] { titleDeed, mandate, taxReceipt })
+        {
+            if (file is null) continue;
+            if (!OwnershipDocTypes.Contains(file.ContentType.ToLower()))
+                return ApiResponse<HouseDto>.Fail($"Sèlman JPEG, PNG, WebP oswa PDF aksepte. '{file.ContentType}' pa valid.");
+            if (file.Length > OwnershipMaxSize)
+                return ApiResponse<HouseDto>.Fail("Chak dokiman pa dwe depase 10MB.");
+        }
+
+        PrivateFileHelper.DeleteIfExists(_env, "house-ownership", house.OwnershipTitleDeedPath);
+        house.OwnershipTitleDeedPath = await PrivateFileHelper.SaveAsync(_env, "house-ownership", titleDeed);
+
+        if (mandate != null)
+        {
+            PrivateFileHelper.DeleteIfExists(_env, "house-ownership", house.OwnershipMandatePath);
+            house.OwnershipMandatePath = await PrivateFileHelper.SaveAsync(_env, "house-ownership", mandate);
+        }
+        if (taxReceipt != null)
+        {
+            PrivateFileHelper.DeleteIfExists(_env, "house-ownership", house.OwnershipTaxReceiptPath);
+            house.OwnershipTaxReceiptPath = await PrivateFileHelper.SaveAsync(_env, "house-ownership", taxReceipt);
+        }
+
+        house.AdresseComplete = adresseComplete?.Trim();
+        house.Latitude = latitude;
+        house.Longitude = longitude;
+        house.OwnershipStatus = "Pending";
+        house.OwnershipSubmittedAt = DateTime.UtcNow;
+        house.OwnershipRejectionReason = null;
+
+        await _db.SaveChangesAsync();
+        return ApiResponse<HouseDto>.Ok(
+            await MapHouseAsync(house, userId),
+            "Dokiman pwopriyete yo voye! Admin ap revize yo.");
+    }
+
+    public async Task<ApiResponse<PagedResult<HouseDto>>> GetOwnershipQueueAsync(int page, int pageSize, string? status)
+    {
+        var query = _db.Houses
+            .Include(h => h.User)
+            .Include(h => h.Images)
+            .Where(h => h.OwnershipTitleDeedPath != null);
+
+        if (!string.IsNullOrEmpty(status))
+            query = query.Where(h => h.OwnershipStatus == status);
+
+        var total = await query.CountAsync();
+        var houses = await query
+            .OrderByDescending(h => h.OwnershipSubmittedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var items = new List<HouseDto>();
+        foreach (var h in houses)
+            items.Add(await MapHouseAsync(h, h.UserId, isAdmin: true));
+
+        return ApiResponse<PagedResult<HouseDto>>.Ok(new PagedResult<HouseDto>
+        {
+            Items = items,
+            Total = total,
+            Page = page,
+            PageSize = pageSize
+        });
+    }
+
+    public async Task<ApiResponse<HouseDto>> OwnershipAdminActionAsync(int houseId, AdminOwnershipActionRequest req, int adminId)
+    {
+        var house = await _db.Houses
+            .Include(h => h.User)
+            .Include(h => h.Images)
+            .FirstOrDefaultAsync(h => h.Id == houseId);
+
+        if (house is null) return ApiResponse<HouseDto>.Fail("Kay pa jwenn.");
+        if (house.OwnershipStatus != "Pending")
+            return ApiResponse<HouseDto>.Fail("Verifikasyon sa a deja trete.");
+
+        house.OwnershipStatus = req.Action;
+        house.OwnershipRejectionReason = req.Action == "Rejected" ? req.Reason : null;
+        house.OwnershipVerifiedAt = req.Action == "Verified" ? DateTime.UtcNow : null;
+        house.OwnershipVerifiedByAdminId = adminId;
+
+        await _db.SaveChangesAsync();
+        return ApiResponse<HouseDto>.Ok(
+            await MapHouseAsync(house, adminId, isAdmin: true),
+            $"Pwopriyete {(req.Action == "Verified" ? "verifye" : "rejte")} avèk siksè.");
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KayAyiti.Data;
 using KayAyiti.DTOs;
+using KayAyiti.Helpers;
 using KayAyiti.Services;
 
 namespace KayAyiti.Controllers;
@@ -13,8 +14,13 @@ namespace KayAyiti.Controllers;
 public class AdminUsersController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment _env;
 
-    public AdminUsersController(AppDbContext db) => _db = db;
+    public AdminUsersController(AppDbContext db, IWebHostEnvironment env)
+    {
+        _db = db;
+        _env = env;
+    }
 
     /// <summary>Wè tout itilizatè yo</summary>
     [HttpGet]
@@ -93,21 +99,44 @@ public class AdminUsersController : ControllerBase
         if (user.Role == "Admin")
             return BadRequest(ApiResponse<bool>.Fail("Ou pa ka efase yon Admin."));
 
+        // Efase dokiman KYC prive itilizatè a sou disk
+        PrivateFileHelper.DeleteIfExists(_env, "kyc-id", user.IdDocumentPath);
+        PrivateFileHelper.DeleteIfExists(_env, "kyc-selfie", user.SelfiePath);
+
+        // Efase rapò ak "like" itilizatè a fè — FK sa yo pa gen cascade
+        // (pou evite plizyè chemen cascade sou House), kidonk yo dwe efase alamen.
+        await _db.Reports
+            .Where(r => r.ReporterId == id)
+            .ExecuteDeleteAsync();
+        await _db.HouseLikes
+            .Where(l => l.UserId == id)
+            .ExecuteDeleteAsync();
+
         // Efase peman itilizatè a te fè kòm achetè
         await _db.Payments
             .Where(p => p.UserId == id)
             .ExecuteDeleteAsync();
 
         // Efase peman pou kay itilizatè a posede
-        var houseIds = await _db.Houses
+        var houses = await _db.Houses
             .Where(h => h.UserId == id)
-            .Select(h => h.Id)
             .ToListAsync();
 
-        if (houseIds.Count > 0)
+        if (houses.Count > 0)
+        {
+            var houseIds = houses.Select(h => h.Id).ToList();
             await _db.Payments
                 .Where(p => houseIds.Contains(p.HouseId))
                 .ExecuteDeleteAsync();
+
+            // Efase dokiman pwopriyete prive pou chak kay
+            foreach (var h in houses)
+            {
+                PrivateFileHelper.DeleteIfExists(_env, "house-ownership", h.OwnershipTitleDeedPath);
+                PrivateFileHelper.DeleteIfExists(_env, "house-ownership", h.OwnershipMandatePath);
+                PrivateFileHelper.DeleteIfExists(_env, "house-ownership", h.OwnershipTaxReceiptPath);
+            }
+        }
 
         // Efase itilizatè (cascade: kay, imaj kay, refresh tokens)
         _db.Users.Remove(user);
@@ -129,6 +158,9 @@ public class AdminUsersController : ControllerBase
             HousesRejected = await _db.Houses.CountAsync(h => h.Statut == "Rejected"),
             PaymentsPending = await _db.Payments.CountAsync(p => p.Statut == "Pending"),
             PaymentsVerified = await _db.Payments.CountAsync(p => p.Statut == "Verified"),
+            KycPending = await _db.Users.CountAsync(u => u.KycStatus == "Pending"),
+            OwnershipPending = await _db.Houses.CountAsync(h => h.OwnershipStatus == "Pending"),
+            ReportsPending = await _db.Reports.CountAsync(r => r.Status == "Pending"),
             TotalRevenueHTG = await _db.Payments
                 .Where(p => p.Statut == "Verified")
                 .SumAsync(p => p.Amount),

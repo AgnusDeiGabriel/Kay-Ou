@@ -36,10 +36,13 @@ function showPage(pageId, navEl) {
 
 
   const loaders = {
-    'page-dashboard': loadDashboard,
-    'page-houses':    loadHouses,
-    'page-payments':  loadPayments,
-    'page-users':     loadUsers,
+    'page-dashboard':  loadDashboard,
+    'page-houses':     loadHouses,
+    'page-payments':   loadPayments,
+    'page-users':      loadUsers,
+    'page-kyc':        loadKyc,
+    'page-ownership':  loadOwnership,
+    'page-reports':    loadReports,
   };
   if (loaders[pageId]) loaders[pageId]();
 }
@@ -97,8 +100,11 @@ async function loadDashboard() {
     $('stat-revenue').textContent        = s.totalRevenueHTG.toLocaleString();
 
     // Update sidebar badges
-    if ($('badge-houses'))   $('badge-houses').textContent   = s.housesPending   || '';
-    if ($('badge-payments')) $('badge-payments').textContent = s.paymentsPending || '';
+    if ($('badge-houses'))    $('badge-houses').textContent    = s.housesPending    || '';
+    if ($('badge-payments'))  $('badge-payments').textContent  = s.paymentsPending  || '';
+    if ($('badge-kyc'))       $('badge-kyc').textContent       = s.kycPending       || '';
+    if ($('badge-ownership')) $('badge-ownership').textContent = s.ownershipPending || '';
+    if ($('badge-reports'))   $('badge-reports').textContent   = s.reportsPending   || '';
 
     // Dènye kay pou valide
     renderDashHouses();
@@ -485,6 +491,208 @@ function onUserSearch(val) {
   userFilters.page   = 1;
   userSearchTimer    = setTimeout(loadAppUsers, 400);
 }
+
+
+// ─── Fichye prive (KYC / dokiman pwopriyete) ────────────────────────────────
+
+async function viewPrivateDoc(path) {
+  try {
+    const blob = await API.reqBlob(path);
+    window.open(URL.createObjectURL(blob), '_blank');
+  } catch (e) {
+    toast('Pa ka louvri dokiman an: ' + e.message, 'err');
+  }
+}
+
+// ─── VERIFIKASYON IDANTITE (KYC) ────────────────────────────────────────────
+
+let kycFilters = { status: 'Pending', page: 1, pageSize: 20 };
+
+async function loadKyc() {
+  const tbody = $('kyc-tbody');
+  tbody.innerHTML = '<tr><td colspan="6"><div class="loader"><div class="spinner"></div></div></td></tr>';
+  try {
+    const params = { page: kycFilters.page, pageSize: kycFilters.pageSize };
+    if (kycFilters.status) params.status = kycFilters.status;
+
+    const res  = await API.kyc.adminAll(params);
+    const data = res.data;
+    $('kyc-count-lbl').textContent = data.total + ' soumisyon';
+
+    if (!data.items.length) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🪪</div><div class="empty-sub">Pa gen soumisyon pou montre.</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.items.map(u => `
+      <tr>
+        <td>${userCell({ id: u.userId, nom: u.nom, email: u.email })}</td>
+        <td>${u.telefon || '—'}</td>
+        <td>
+          <div class="action-row">
+            <button class="btn btn-sm btn-amber" onclick="viewPrivateDoc(API.kyc.docUrl(${u.userId}))">Wè ID</button>
+            <button class="btn btn-sm btn-amber" onclick="viewPrivateDoc(API.kyc.selfieUrl(${u.userId}))">Wè Selfi</button>
+          </div>
+        </td>
+        <td>${fmtDate(u.kycSubmittedAt)}</td>
+        <td><span class="pill pill-${u.kycStatus.toLowerCase()}">${u.kycStatus}</span></td>
+        <td>
+          <div class="action-row">
+            ${u.kycStatus === 'Pending' ? `
+              <button class="btn btn-sm btn-verify" onclick="kycReview(${u.userId},'Verified',this)">✓ Verifye</button>
+              <button class="btn btn-sm btn-reject"  onclick="kycReview(${u.userId},'Rejected',this)">✕</button>
+            ` : `<span style="font-size:12px;color:var(--muted);">Trete ✓</span>`}
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px;">${e.message}</td></tr>`;
+  }
+}
+
+async function kycReview(userId, action, btn) {
+  let reason = null;
+  if (action === 'Rejected') {
+    reason = prompt('Rezon refi a (obligatwa):');
+    if (!reason || !reason.trim()) { toast('Rezon refi obligatwa.', 'err'); return; }
+    reason = reason.trim();
+  }
+  btn.disabled = true;
+  try {
+    await API.kyc.review(userId, { action, reason });
+    toast(action === 'Verified' ? 'Idantite verifye ✓' : 'Idantite rejte.', action === 'Verified' ? 'ok' : 'err');
+    loadKyc();
+    loadDashboard();
+  } catch (e) {
+    toast(e.message, 'err');
+    btn.disabled = false;
+  }
+}
+
+function onKycStatusFilter(val) { kycFilters.status = val; kycFilters.page = 1; loadKyc(); }
+
+// ─── VERIFIKASYON PWOPRIYETE ─────────────────────────────────────────────────
+
+let ownershipFilters = { status: 'Pending', page: 1, pageSize: 20 };
+
+async function loadOwnership() {
+  const tbody = $('ownership-tbody');
+  tbody.innerHTML = '<tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>';
+  try {
+    const params = { page: ownershipFilters.page, pageSize: ownershipFilters.pageSize };
+    if (ownershipFilters.status) params.status = ownershipFilters.status;
+
+    const res  = await API.ownership.adminAll(params);
+    const data = res.data;
+    $('ownership-count-lbl').textContent = data.total + ' kay';
+
+    if (!data.items.length) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🛡️</div><div class="empty-sub">Pa gen soumisyon pou montre.</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.items.map(h => `
+      <tr>
+        <td>${houseCell(h)}</td>
+        <td>${userCell(h.owner)}</td>
+        <td>
+          <div class="action-row">
+            ${h.hasTitleDeed  ? `<button class="btn btn-sm btn-amber" onclick="viewPrivateDoc(API.ownership.docUrl(${h.id},'deed'))">Tit</button>` : ''}
+            ${h.hasMandate    ? `<button class="btn btn-sm btn-amber" onclick="viewPrivateDoc(API.ownership.docUrl(${h.id},'mandate'))">Manda</button>` : ''}
+            ${h.hasTaxReceipt ? `<button class="btn btn-sm btn-amber" onclick="viewPrivateDoc(API.ownership.docUrl(${h.id},'tax-receipt'))">Resi Taks</button>` : ''}
+          </div>
+        </td>
+        <td style="max-width:180px;font-size:12px;">${h.adresseComplete || '—'}</td>
+        <td>${fmtDate(h.ownershipSubmittedAt)}</td>
+        <td><span class="pill pill-${h.ownershipStatus.toLowerCase()}">${h.ownershipStatus}</span></td>
+        <td>
+          <div class="action-row">
+            ${h.ownershipStatus === 'Pending' ? `
+              <button class="btn btn-sm btn-verify" onclick="ownershipReview(${h.id},'Verified',this)">✓ Verifye</button>
+              <button class="btn btn-sm btn-reject"  onclick="ownershipReview(${h.id},'Rejected',this)">✕</button>
+            ` : `<span style="font-size:12px;color:var(--muted);">Trete ✓</span>`}
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);padding:16px;">${e.message}</td></tr>`;
+  }
+}
+
+async function ownershipReview(houseId, action, btn) {
+  let reason = null;
+  if (action === 'Rejected') {
+    reason = prompt('Rezon refi a (obligatwa):');
+    if (!reason || !reason.trim()) { toast('Rezon refi obligatwa.', 'err'); return; }
+    reason = reason.trim();
+  }
+  btn.disabled = true;
+  try {
+    await API.ownership.review(houseId, { action, reason });
+    toast(action === 'Verified' ? 'Pwopriyete verifye ✓' : 'Pwopriyete rejte.', action === 'Verified' ? 'ok' : 'err');
+    loadOwnership();
+    loadDashboard();
+  } catch (e) {
+    toast(e.message, 'err');
+    btn.disabled = false;
+  }
+}
+
+function onOwnershipStatusFilter(val) { ownershipFilters.status = val; ownershipFilters.page = 1; loadOwnership(); }
+
+// ─── RAPÒ ────────────────────────────────────────────────────────────────────
+
+let reportFilters = { status: 'Pending', page: 1, pageSize: 20 };
+
+async function loadReports() {
+  const tbody = $('reports-tbody');
+  tbody.innerHTML = '<tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>';
+  try {
+    const params = { page: reportFilters.page, pageSize: reportFilters.pageSize };
+    if (reportFilters.status) params.status = reportFilters.status;
+
+    const res  = await API.reports.adminAll(params);
+    const data = res.data;
+    $('reports-count-lbl').textContent = data.total + ' rapò';
+
+    if (!data.items.length) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🚩</div><div class="empty-sub">Pa gen rapò pou montre.</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.items.map(r => `
+      <tr>
+        <td>${r.reporterNom}</td>
+        <td>${r.houseTitre}</td>
+        <td>${r.reason}</td>
+        <td style="max-width:200px;font-size:12px;">${r.details || '—'}</td>
+        <td>${fmtDate(r.createdAt)}</td>
+        <td><span class="pill pill-${r.status.toLowerCase()}">${r.status}</span></td>
+        <td>
+          <div class="action-row">
+            ${r.status === 'Pending' ? `
+              <button class="btn btn-sm btn-verify" onclick="reportReview(${r.id},'Reviewed',this)">✓ Trete</button>
+              <button class="btn btn-sm btn-reject"  onclick="reportReview(${r.id},'Dismissed',this)">✕ Anile</button>
+            ` : `<span style="font-size:12px;color:var(--muted);">Trete ✓</span>`}
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);padding:16px;">${e.message}</td></tr>`;
+  }
+}
+
+async function reportReview(id, action, btn) {
+  btn.disabled = true;
+  try {
+    await API.reports.review(id, { action });
+    toast(action === 'Reviewed' ? 'Rapò trete ✓' : 'Rapò anile.', 'ok');
+    loadReports();
+    loadDashboard();
+  } catch (e) {
+    toast(e.message, 'err');
+    btn.disabled = false;
+  }
+}
+
+function onReportStatusFilter(val) { reportFilters.status = val; reportFilters.page = 1; loadReports(); }
 
 
 function houseCell(h) {

@@ -46,6 +46,27 @@ const API = {
     return json;
   },
 
+  // Pou fichye prive (KYC/dokiman pwopriyete) — retounen yon Blob olye JSON,
+  // paske sa yo mande yon header Authorization ke yon <img>/window.open pa ka voye.
+  async reqBlob(path) {
+    const headers = {};
+    const token = this.getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    let res = await fetch(this.BASE_URL + path, { headers });
+
+    if (res.status === 401 && this.getRefresh()) {
+      const refreshed = await this.refreshToken();
+      if (refreshed) {
+        headers['Authorization'] = `Bearer ${this.getToken()}`;
+        res = await fetch(this.BASE_URL + path, { headers });
+      }
+    }
+
+    if (!res.ok) throw new Error(`Erè ${res.status}`);
+    return res.blob();
+  },
+
   async refreshToken() {
     try {
       const res = await fetch(this.BASE_URL + '/auth/refresh', {
@@ -136,5 +157,44 @@ const API = {
     users:        (p={}) => API.req('GET',    '/admin/users?' + new URLSearchParams(p)),
     toggleActive: (id)   => API.req('PATCH',  `/admin/users/${id}/toggle-active`),
     deleteUser:   (id)   => API.req('DELETE', `/admin/users/${id}`),
+  },
+
+  // ── KYC (verifikasyon idantite) ────────────────────────────
+  kyc: {
+    submit(idDocument, selfie) {
+      const fd = new FormData();
+      fd.append('idDocument', idDocument);
+      fd.append('selfie', selfie);
+      return API.req('POST', '/kyc/submit', fd, true);
+    },
+    status:   ()        => API.req('GET',   '/kyc/status'),
+    adminAll: (p = {})  => API.req('GET',   '/kyc/admin/all?' + new URLSearchParams(p)),
+    review:   (userId, d) => API.req('PATCH', `/kyc/admin/${userId}/review`, d),
+    docUrl:    (userId) => `/kyc/admin/${userId}/document`,
+    selfieUrl: (userId) => `/kyc/admin/${userId}/selfie`,
+  },
+
+  // ── VERIFIKASYON PWOPRIYETE ─────────────────────────────────
+  ownership: {
+    submit(houseId, files, fields) {
+      const fd = new FormData();
+      fd.append('titleDeed', files.deed);
+      if (files.mandate)    fd.append('mandate', files.mandate);
+      if (files.taxReceipt) fd.append('taxReceipt', files.taxReceipt);
+      if (fields?.adresseComplete) fd.append('adresseComplete', fields.adresseComplete);
+      if (fields?.latitude != null)  fd.append('latitude', fields.latitude);
+      if (fields?.longitude != null) fd.append('longitude', fields.longitude);
+      return API.req('POST', `/houses/${houseId}/ownership-docs`, fd, true);
+    },
+    adminAll: (p = {}) => API.req('GET',   '/houses/admin/ownership-all?' + new URLSearchParams(p)),
+    review:   (houseId, d) => API.req('PATCH', `/houses/${houseId}/ownership-review`, d),
+    docUrl:   (houseId, docType) => `/houses/admin/${houseId}/ownership-doc/${docType}`,
+  },
+
+  // ── RAPÒ ─────────────────────────────────────────────────────
+  reports: {
+    create:   (d)       => API.req('POST',  '/reports', d),
+    adminAll: (p = {})  => API.req('GET',   '/reports/admin/all?' + new URLSearchParams(p)),
+    review:   (id, d)   => API.req('PATCH', `/reports/admin/${id}/review`, d),
   }
 };

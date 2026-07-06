@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2C1810">
+<title>Kat Kay yo — KayOu</title>
+<link rel="stylesheet" href="app.css?v=21">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg-feed); }
+  #map { position: fixed; inset: 0; z-index: 0; background: #E8E4DC; }
+
+  /* ── HEADER ─────────────────────────────────────────────── */
+  .map-hdr {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+    background: var(--brown); padding: 16px 18px 12px;
+    box-shadow: var(--shadow-md);
+  }
+  .map-hdr-top { display: flex; align-items: center; gap: 12px; }
+  .map-back {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,.13); border: 1.5px solid rgba(255,255,255,.18);
+    color: var(--cream); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .map-back:active { background: rgba(255,255,255,.22); }
+  .map-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 700; color: var(--cream); flex: 1; }
+  .map-count { font-family: 'DM Sans', sans-serif; font-size: 12px; color: #F5C4A4; }
+
+  /* ── SEARCH + FILTER ────────────────────────────────────── */
+  .map-search-row { display: flex; gap: 8px; margin-top: 12px; position: relative; }
+  .map-search-box {
+    flex: 1; display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.15);
+    border-radius: 12px; padding: 9px 12px;
+  }
+  .map-search-box svg { flex-shrink: 0; color: rgba(250,246,241,.6); }
+  .map-search-box input {
+    background: transparent; border: none; outline: none; flex: 1; min-width: 0;
+    font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #fff;
+  }
+  .map-search-box input::placeholder { color: rgba(250,246,241,.45); }
+  .map-search-clear {
+    background: none; border: none; color: rgba(250,246,241,.6); cursor: pointer;
+    display: none; font-size: 15px; padding: 0 2px; flex-shrink: 0;
+  }
+  .map-search-clear.visible { display: block; }
+
+  .zone-suggestions {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 46px;
+    background: var(--white); border-radius: 14px; box-shadow: var(--shadow-lg);
+    max-height: 220px; overflow-y: auto; z-index: 600;
+  }
+  .zone-suggestions.visible { display: block; }
+  .zone-sugg-item {
+    padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--brown); cursor: pointer; border-bottom: 1px solid var(--border);
+  }
+  .zone-sugg-item:last-child { border-bottom: none; }
+  .zone-sugg-item:active { background: var(--orange-lt); }
+  .zone-sugg-empty { padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: var(--muted); }
+
+  .map-filter-btn {
+    position: relative; width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+    background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.15);
+    color: rgba(250,246,241,.85); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .map-filter-btn:active { background: rgba(255,255,255,.22); }
+  .map-filter-btn.has-active { background: var(--orange); border-color: var(--orange); color: #fff; }
+  .map-filter-badge {
+    display: none; position: absolute; top: -3px; right: -3px;
+    width: 10px; height: 10px; border-radius: 50%; background: #E53935; border: 2px solid var(--brown);
+  }
+  .map-filter-badge.visible { display: block; }
+
+  .zone-active-chip {
+    display: none; align-items: center; gap: 6px; margin-top: 10px;
+    background: var(--orange); color: #fff; border-radius: 100px;
+    padding: 6px 8px 6px 13px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+    width: fit-content;
+  }
+  .zone-active-chip.visible { display: flex; }
+  .zone-active-chip button { background: rgba(255,255,255,.25); border: none; color: #fff; border-radius: 50%; width: 18px; height: 18px; cursor: pointer; font-size: 12px; line-height: 1; }
+
+  .map-chips { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; padding-bottom: 2px; }
+  .map-chips::-webkit-scrollbar { display: none; }
+  .map-chip {
+    flex-shrink: 0; padding: 7px 15px; border-radius: 100px;
+    font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500;
+    background: rgba(255,255,255,.1); color: rgba(250,246,241,.8);
+    border: 1.5px solid rgba(255,255,255,.15); cursor: pointer; white-space: nowrap;
+  }
+  .map-chip.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+
+  /* ── FILTER PANEL ───────────────────────────────────────── */
+  .filter-panel-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,.35);
+  }
+  .filter-panel-backdrop.open { display: block; }
+  .filter-panel {
+    position: fixed; left: 14px; right: 14px; z-index: 701;
+    background: var(--white); border-radius: 18px; padding: 18px;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-14px); opacity: 0; pointer-events: none;
+    transition: transform .22s cubic-bezier(0.32,0.72,0,1), opacity .22s;
+  }
+  .filter-panel.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+  .filter-panel-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 700; color: var(--brown); margin-bottom: 12px; }
+  .filter-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .filter-field { flex: 1; }
+  .filter-field label { display: block; font-family: 'DM Sans', sans-serif; font-size: 11.5px; color: var(--muted); margin-bottom: 5px; }
+  .filter-field input {
+    width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px;
+    border: 1.5px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: var(--brown);
+  }
+  .filter-actions { display: flex; gap: 10px; margin-top: 6px; }
+  .filter-btn-clear, .filter-btn-apply {
+    flex: 1; padding: 12px; border-radius: 12px; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600;
+  }
+  .filter-btn-clear { background: var(--bg-feed); color: var(--muted); }
+  .filter-btn-apply { background: var(--orange); color: #fff; }
+
+  /* ── LOADING ────────────────────────────────────────────── */
+  .map-loading {
+    position: fixed; inset: 0; z-index: 400;
+    background: var(--bg-feed); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+  }
+  .map-spinner {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid var(--orange-lt); border-top-color: var(--orange);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .map-loading-txt { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--muted); }
+
+  /* ── MARKERS ────────────────────────────────────────────── */
+  .zone-pin {
+    background: var(--orange); color: #fff; border: 2.5px solid #fff;
+    border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-md); font-family: 'DM Sans', sans-serif;
+  }
+  .zone-pin span { transform: rotate(45deg); font-weight: 700; white-space: nowrap; }
+  .zone-pin.type-lwe { background: var(--green); }
+  .zone-pin.solo-pin { border-radius: 100px; transform: none; padding: 0 10px; max-width: 130px; }
+  .zone-pin.solo-pin span {
+    transform: none; font-size: 11.5px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
+  }
+
+  @keyframes pinBounce {
+    0%, 100% { margin-top: 0; }
+    30% { margin-top: -14px; }
+    55% { margin-top: 0; }
+    75% { margin-top: -6px; }
+  }
+  .pin-bounce { animation: pinBounce .6s ease; }
+
+  .leaflet-popup-content-wrapper { border-radius: 16px; padding: 0; overflow: hidden; }
+  .leaflet-popup-content { margin: 0; width: 260px !important; }
+  .leaflet-popup-tip { background: #fff; }
+
+  .zone-pop-hdr { padding: 12px 14px 8px; border-bottom: 1px solid var(--border); }
+  .zone-pop-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 700; color: var(--brown); }
+  .zone-pop-sub { font-family: 'DM Sans', sans-serif; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+  .zone-pop-list { max-height: 260px; overflow-y: auto; }
+  .zone-pop-item {
+    display: flex; gap: 10px; padding: 10px 14px; cursor: pointer;
+    border-bottom: 1px solid var(--border); transition: background .12s;
+  }
+  .zone-pop-item:last-child { border-bottom: none; }
+  .zone-pop-item:active, .zone-pop-item--active { background: var(--orange-lt); }
+  .zone-pop-img {
+    width: 46px; height: 46px; border-radius: 10px; object-fit: cover;
+    background: linear-gradient(135deg,#E8D5C4,#C9A98A); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .zone-pop-info { flex: 1; min-width: 0; }
+  .zone-pop-name {
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--brown);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .zone-pop-price { font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: var(--orange-dk); font-weight: 600; margin-top: 2px; }
+  .zone-pop-meta { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .map-empty-banner {
+    position: fixed; bottom: 130px; left: 18px; right: 18px; z-index: 450;
+    background: var(--white); border-radius: 14px; padding: 12px 16px;
+    box-shadow: var(--shadow-md); font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px; color: var(--muted); text-align: center; display: none;
+  }
+  .map-empty-banner.visible { display: block; }
+
+  /* ── BOTTOM SHEET ───────────────────────────────────────── */
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 550;
+    height: 72vh; max-height: 620px;
+    background: var(--white); border-radius: 22px 22px 0 0;
+    box-shadow: 0 -6px 30px rgba(0,0,0,.18);
+    transform: translateY(calc(100% - 108px));
+    transition: transform .3s cubic-bezier(0.32,0.72,0,1);
+    display: flex; flex-direction: column;
+    touch-action: none;
+  }
+  .sheet.dragging { transition: none; }
+  .sheet.expanded { transform: translateY(0); }
+
+  .sheet-handle-area { padding: 10px 18px 6px; cursor: grab; flex-shrink: 0; }
+  .sheet-handle { width: 40px; height: 4px; border-radius: 100px; background: var(--border); margin: 0 auto 12px; }
+  .sheet-hdr-row { display: flex; align-items: center; justify-content: space-between; }
+  .sheet-title { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 700; color: var(--brown); }
+  .sheet-sub { font-family: 'DM Sans', sans-serif; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .sheet-chevron { color: var(--muted); transition: transform .25s; }
+  .sheet.expanded .sheet-chevron { transform: rotate(180deg); }
+
+  .sheet-list { flex: 1; overflow-y: auto; padding: 4px 14px 18px; touch-action: pan-y; }
+  .sheet-item {
+    display: flex; gap: 12px; padding: 12px 4px; cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .sheet-item:last-child { border-bottom: none; }
+  .sheet-item:active { background: var(--orange-lt); border-radius: 12px; }
+  .sheet-img {
+    width: 62px; height: 62px; border-radius: 12px; object-fit: cover; flex-shrink: 0;
+    background: linear-gradient(135deg,#E8D5C4,#C9A98A);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .sheet-info { flex: 1; min-width: 0; }
+  .sheet-name {
+    font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600; color: var(--brown);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sheet-zone { font-family: 'DM Sans', sans-serif; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .sheet-price { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--orange-dk); font-weight: 700; margin-top: 3px; }
+  .sheet-meta { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .sheet-goto { align-self: center; color: var(--muted); flex-shrink: 0; }
+
+  .sheet-empty { padding: 30px 16px; text-align: center; font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="map-loading" id="map-loading">
+  <div class="map-spinner"></div>
+  <div class="map-loading-txt">N ap chaje kay yo sou kat la...</div>
+</div>
+
+<div class="map-hdr">
+  <div class="map-hdr-top">
+    <div class="map-back" onclick="location.href='index.html'">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </div>
+    <div>
+      <div class="map-title">Kat Kay yo</div>
+      <div class="map-count" id="map-count">— kay</div>
+    </div>
+  </div>
+
+  <div class="map-search-row">
+    <div class="map-search-box">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <input id="zone-search" placeholder="Chèche yon zòn (Delmas, Jacmel...)"
+             oninput="onZoneSearchInput(this.value)" onfocus="onZoneSearchInput(this.value)" autocomplete="off">
+      <button class="map-search-clear" id="zone-search-clear" onclick="clearZoneQuery()">✕</button>
+    </div>
+    <button class="map-filter-btn" id="map-filter-btn" onclick="toggleFilterPanel()" title="Filtè">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+      <span class="map-filter-badge" id="map-filter-badge"></span>
+    </button>
+    <div class="zone-suggestions" id="zone-suggestions"></div>
+  </div>
+
+  <div class="zone-active-chip" id="zone-active-chip">
+    <span id="zone-active-chip-label"></span>
+    <button onclick="clearZoneQuery()">✕</button>
+  </div>
+
+  <div class="map-chips">
+    <div class="map-chip active" data-type="" onclick="setTypeFilter(this,'')">Tout</div>
+    <div class="map-chip" data-type="Vann" onclick="setTypeFilter(this,'Vann')">Pou Vann</div>
+    <div class="map-chip" data-type="Lwe" onclick="setTypeFilter(this,'Lwe')">Pou Lwe</div>
+  </div>
+</div>
+
+<div class="filter-panel-backdrop" id="filter-panel-backdrop" onclick="toggleFilterPanel()"></div>
+<div class="filter-panel" id="filter-panel">
+  <div class="filter-panel-title">Filtè</div>
+  <div class="filter-row">
+    <div class="filter-field">
+      <label>Pri Min ($)</label>
+      <input type="number" id="f-prix-min" placeholder="0" min="0">
+    </div>
+    <div class="filter-field">
+      <label>Pri Max ($)</label>
+      <input type="number" id="f-prix-max" placeholder="San limit" min="0">
+    </div>
+  </div>
+  <div class="filter-row">
+    <div class="filter-field">
+      <label>Chanm Min</label>
+      <input type="number" id="f-chambre-min" placeholder="0" min="0">
+    </div>
+  </div>
+  <div class="filter-actions">
+    <button class="filter-btn-clear" onclick="clearFilters()">Efase</button>
+    <button class="filter-btn-apply" onclick="applyFilterPanel()">Aplike Filtè</button>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div class="map-empty-banner" id="map-empty-banner">Pa gen kay ki gen yon zòn nou rekonèt pou montre sou kat la.</div>
+
+<div class="sheet" id="sheet">
+  <div class="sheet-handle-area" id="sheet-handle-area">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr-row">
+      <div>
+        <div class="sheet-title">Kay nan vizyon w</div>
+        <div class="sheet-sub" id="sheet-count">— kay</div>
+      </div>
+      <svg class="sheet-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+    </div>
+  </div>
+  <div class="sheet-list" id="sheet-list"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="api.js"></script>
+<script src="map.js"></script>
+</body>
+</html>

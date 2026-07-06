@@ -109,6 +109,13 @@
         <div class="home-loc">📍 Petion-Ville, Delmas, Tabarre</div>
       </div>
       <div class="home-actions">
+        <button class="home-msg-btn" onclick="location.href='map.html'" title="Kat Kay yo">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/>
+            <line x1="8" y1="2" x2="8" y2="18"/>
+            <line x1="16" y1="6" x2="16" y2="22"/>
+          </svg>
+        </button>
         <button class="home-msg-btn" id="home-msg-btn" onclick="openConversations()" title="Mesaj yo">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
@@ -166,7 +173,7 @@
     </div>
   </div>
 
-  <button class="fab" onclick="if(!API.isLoggedIn()){showLogin();}else{goTo('add');}">+</button>
+  <button class="fab" onclick="openAddHouseScreen()">+</button>
 </div>
 
 <!-- ════════════════ DETAIL ════════════════ -->
@@ -175,6 +182,9 @@
     <div id="det-hero-inner" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"></div>
     <div class="detail-back" onclick="goTo('home')">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </div>
+    <div class="detail-back" style="left:auto;right:16px;" onclick="openReportModal()" title="Rapòte kay sa a">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
     </div>
   </div>
 
@@ -197,7 +207,10 @@
       <div class="owner-card">
         <div class="owner-av" id="det-owner-av">?</div>
         <div>
-          <div class="owner-name" id="det-owner-name">—</div>
+          <div class="owner-name-row">
+            <span class="owner-name" id="det-owner-name">—</span>
+            <span id="det-owner-trust" class="owner-trust-badge" style="display:none;">🛡️ Verifye</span>
+          </div>
           <div class="owner-sub">Pwopriyetè kay la</div>
         </div>
       </div>
@@ -420,7 +433,43 @@
         <div class="amenity-chip" id="amen-pisin"    onclick="this.classList.toggle('on')">🏊 Pisin</div>
       </div>
 
-      <button class="btn-main dark" id="btn-submit-house" onclick="submitHouse()">Voye pou Validasyon →</button>
+      <div class="section-divider">🛡️ Verifikasyon Pwopriyete (Opsyonèl)</div>
+      <div style="font-size:12px;color:var(--muted);margin:-6px 0 14px;">
+        Ajoute dokiman pwopriyete kounye a pou kay ou a ka jwenn badge "Pwopriyetè Verifye" pi vit. Ou ka fè sa pita tou nan "Kay Mwen Yo".
+      </div>
+
+      <label class="form-lbl">Tit Pwopriyete oswa Kontra Vant</label>
+      <div class="upload-zone" id="add-own-deed-zone" style="height:100px;margin-top:6px;" onclick="$('add-own-deed-input').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-txt" id="add-own-deed-txt">Chwazi yon foto oswa PDF</div>
+      </div>
+      <input type="file" id="add-own-deed-input" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;"
+             onchange="onOwnershipFileChange(this,'add-own-deed-zone','add-own-deed-txt','deed')">
+
+      <label class="form-lbl">Manda / Pwokirasyon <span style="font-weight:400;color:var(--muted);">(si se pa ou ki pwopriyetè)</span></label>
+      <div class="upload-zone" id="add-own-mandate-zone" style="height:80px;margin-top:6px;" onclick="$('add-own-mandate-input').click()">
+        <div class="upload-icon">📋</div>
+        <div class="upload-txt" id="add-own-mandate-txt">Opsyonèl</div>
+      </div>
+      <input type="file" id="add-own-mandate-input" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;"
+             onchange="onOwnershipFileChange(this,'add-own-mandate-zone','add-own-mandate-txt','mandate')">
+
+      <label class="form-lbl">Resi Taks Pwopriyete</label>
+      <div class="upload-zone" id="add-own-tax-zone" style="height:80px;margin-top:6px;" onclick="$('add-own-tax-input').click()">
+        <div class="upload-icon">🧾</div>
+        <div class="upload-txt" id="add-own-tax-txt">Opsyonèl</div>
+      </div>
+      <input type="file" id="add-own-tax-input" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;"
+             onchange="onOwnershipFileChange(this,'add-own-tax-zone','add-own-tax-txt','taxReceipt')">
+
+      <div class="form-grp">
+        <label class="form-lbl">Adrès Konplè</label>
+        <input class="form-inp" id="add-own-adresse" placeholder="Ri, kwen, referans...">
+      </div>
+      <button type="button" class="mh-ownership-btn" onclick="captureOwnershipGps('add-own-gps-status')">📍 Jwenn pozisyon mwen</button>
+      <div id="add-own-gps-status" style="font-size:11.5px;color:var(--muted);margin-top:6px;"></div>
+
+      <button class="btn-main dark" id="btn-submit-house" onclick="submitHouse()" style="margin-top:20px;">Voye pou Validasyon →</button>
     </div>
   </div>
 </div>
@@ -518,7 +567,7 @@
     <div class="pf-name" id="profile-name">Jean Dupont</div>
     <div class="pf-meta">
       <span id="profile-email">jean@email.com</span>
-      <span class="pf-badge-verified" id="pf-verified-badge">✓ Verifye</span>
+      <span class="pf-badge-verified" id="pf-verified-badge" style="display:none;">🛡️ Idantite Verifye</span>
     </div>
 
     <!-- Stats -->
@@ -570,6 +619,14 @@
       <!-- Kont -->
       <div class="pf-section-lbl">Kont Mwen</div>
       <div class="pf-group">
+        <div class="pf-row" onclick="openKycScreen()">
+          <div class="pf-row-icon" style="background:#E8EAF6;">🪪</div>
+          <div class="pf-row-content">
+            <div class="pf-row-title">Verifikasyon Idantite</div>
+            <div class="pf-row-sub" id="pf-kyc-sub">Verifye kont ou ak yon pyès idantite</div>
+          </div>
+          <svg class="pf-row-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        </div>
         <div class="pf-row" onclick="toast('Notifikasyon byento disponib!','info')">
           <div class="pf-row-icon" style="background:#E3F2FD;">🔔</div>
           <div class="pf-row-content">
@@ -651,6 +708,50 @@
       <button class="btn-main dark" id="ep-pw-btn" onclick="changePassword()" style="margin-top:4px;">
         Chanje Modpas
       </button>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ VERIFIKASYON IDANTITE (KYC) ════════════════ -->
+<div class="screen" id="kyc">
+  <div class="page-hdr conv-hdr">
+    <div class="back-row" onclick="goTo('profile')">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </div>
+    <div class="page-hdr-title">Verifikasyon Idantite</div>
+  </div>
+
+  <div class="scroll-body">
+    <div class="add-body">
+
+      <div class="kyc-status-banner" id="kyc-status-banner" style="display:none;"></div>
+
+      <div id="kyc-form-area">
+        <div class="section-divider">Kat Idantite (CIN) oswa Paspò</div>
+        <div class="upload-zone" id="kyc-id-zone" onclick="$('kyc-id-input').click()">
+          <div class="upload-icon">🪪</div>
+          <div class="upload-txt" id="kyc-id-txt">Pran foto oswa chwazi kat idantite/paspò w</div>
+          <div class="upload-hint">JPEG, PNG, WebP • Max 5MB</div>
+        </div>
+        <input type="file" id="kyc-id-input" accept="image/jpeg,image/png,image/webp"
+               capture="environment" style="display:none;"
+               onchange="onKycFileChange(this,'kyc-id-zone','kyc-id-txt')">
+
+        <div class="section-divider">Selfie</div>
+        <div class="upload-zone" id="kyc-selfie-zone" onclick="$('kyc-selfie-input').click()">
+          <div class="upload-icon">🤳</div>
+          <div class="upload-txt" id="kyc-selfie-txt">Pran yon selfie kounye a</div>
+          <div class="upload-hint">Dwe menm moun ki sou dokiman an • Max 5MB</div>
+        </div>
+        <input type="file" id="kyc-selfie-input" accept="image/jpeg,image/png,image/webp"
+               capture="user" style="display:none;"
+               onchange="onKycFileChange(this,'kyc-selfie-zone','kyc-selfie-txt')">
+
+        <button class="btn-main" id="kyc-submit-btn" onclick="submitKyc()" style="margin-top:18px;">
+          Voye pou Verifikasyon
+        </button>
+      </div>
 
     </div>
   </div>
@@ -743,6 +844,70 @@
       <span>© 2026 KayOu • Devlope pa ekip <strong><span style="color:#E53935">X</span><span style="color:#1E88E5">I</span><span style="color:#F9A825">O</span><span style="color:#1E88E5">D</span><span style="color:#43A047">I</span><span style="color:#E53935">X</span></strong></span>
       <span class="info-dot-sep"></span>
       <span>Tout dwa rezève</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ RAPÒTE KAY ════════════════ -->
+<div class="info-modal-bg" id="report-modal" onclick="closeReportModal()">
+  <div class="info-modal" onclick="event.stopPropagation()" style="max-width:380px;">
+    <button class="info-modal-close" onclick="closeReportModal()">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+
+    <div class="info-section" style="margin-top:8px;">
+      <div class="info-section-title">🚩 Rapòte kay sa a</div>
+      <div class="report-reason-list" id="report-reason-list">
+        <div class="report-reason-opt" data-reason="FauKay" onclick="selectReportReason(this)">Kay la sanble pa egziste</div>
+        <div class="report-reason-opt" data-reason="SispisyonFwod" onclick="selectReportReason(this)">Sispèk fwod / eskrokri</div>
+        <div class="report-reason-opt" data-reason="DejaVann" onclick="selectReportReason(this)">Kay la deja vann/lwe</div>
+        <div class="report-reason-opt" data-reason="KontniInapwopriye" onclick="selectReportReason(this)">Kontni oswa foto inapwopriye</div>
+        <div class="report-reason-opt" data-reason="Lòt" onclick="selectReportReason(this)">Lòt rezon</div>
+      </div>
+      <textarea class="form-inp" id="report-details" rows="3" placeholder="Detay adisyonèl (opsyonèl)..." style="resize:none;margin-top:12px;"></textarea>
+      <button class="btn-main" id="report-submit-btn" onclick="submitReport()" style="margin-top:14px;">Voye Rapò</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ VERIFIKASYON PWOPRIYETE (MODAL) ════════════════ -->
+<div class="info-modal-bg" id="ownership-modal" onclick="closeOwnershipModal()">
+  <div class="info-modal" onclick="event.stopPropagation()">
+    <button class="info-modal-close" onclick="closeOwnershipModal()">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+
+    <div class="info-section" style="margin-top:8px;">
+      <div class="info-section-title">🛡️ Verifye Pwopriyete</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Sa ede achtè fè w konfyans. Tout dokiman yo rete prive — sèlman admin ka wè yo.</div>
+
+      <div class="section-divider" style="margin-top:0;">Tit Pwopriyete oswa Kontra Vant *</div>
+      <div class="upload-zone" id="own-deed-zone" style="height:110px;" onclick="$('own-deed-input').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-txt" id="own-deed-txt">Chwazi yon foto oswa PDF</div>
+      </div>
+      <input type="file" id="own-deed-input" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;" onchange="onOwnershipFileChange(this,'own-deed-zone','own-deed-txt','deed')">
+
+      <div class="section-divider">Manda / Pwokirasyon (si se pa ou ki pwopriyetè a)</div>
+      <div class="upload-zone" id="own-mandate-zone" style="height:90px;" onclick="$('own-mandate-input').click()">
+        <div class="upload-icon">📋</div>
+        <div class="upload-txt" id="own-mandate-txt">Opsyonèl</div>
+      </div>
+      <input type="file" id="own-mandate-input" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;" onchange="onOwnershipFileChange(this,'own-mandate-zone','own-mandate-txt','mandate')">
+
+      <div class="section-divider">Resi Taks Pwopriyete</div>
+      <div class="upload-zone" id="own-tax-zone" style="height:90px;" onclick="$('own-tax-input').click()">
+        <div class="upload-icon">🧾</div>
+        <div class="upload-txt" id="own-tax-txt">Opsyonèl</div>
+      </div>
+      <input type="file" id="own-tax-input" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;" onchange="onOwnershipFileChange(this,'own-tax-zone','own-tax-txt','taxReceipt')">
+
+      <div class="section-divider">Adrès Konplè</div>
+      <input class="form-inp" id="own-adresse" placeholder="Ri, kwen, referans...">
+      <button class="mh-ownership-btn" id="own-gps-btn" onclick="captureOwnershipGps()" style="margin-top:10px;">📍 Jwenn pozisyon mwen</button>
+      <div id="own-gps-status" style="font-size:11.5px;color:var(--muted);margin-top:6px;"></div>
+
+      <button class="btn-main" id="own-submit-btn" onclick="submitOwnership()" style="margin-top:18px;">Voye pou Verifikasyon</button>
     </div>
   </div>
 </div>

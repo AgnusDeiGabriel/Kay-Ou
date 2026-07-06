@@ -30,6 +30,9 @@ namespace KayAyiti.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AdresseComplete")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("datetime2");
 
@@ -48,6 +51,39 @@ namespace KayAyiti.Migrations
 
                     b.Property<bool>("Garaj")
                         .HasColumnType("bit");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("OwnershipMandatePath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OwnershipRejectionReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OwnershipStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("None");
+
+                    b.Property<DateTime?>("OwnershipSubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OwnershipTaxReceiptPath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OwnershipTitleDeedPath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("OwnershipVerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("OwnershipVerifiedByAdminId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("Piscine")
                         .HasColumnType("bit");
@@ -274,6 +310,52 @@ namespace KayAyiti.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("KayAyiti.Models.Report", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("HouseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ReporterId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedByAdminId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterId");
+
+                    b.HasIndex("HouseId", "Status");
+
+                    b.ToTable("Reports");
+                });
+
             modelBuilder.Entity("KayAyiti.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -311,8 +393,29 @@ namespace KayAyiti.Migrations
                     b.Property<string>("GoogleId")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("IdDocumentPath")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<string>("KycRejectionReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("KycStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("None");
+
+                    b.Property<DateTime?>("KycSubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("KycVerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("KycVerifiedByAdminId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Nom")
                         .IsRequired()
@@ -325,6 +428,9 @@ namespace KayAyiti.Migrations
 
                     b.Property<string>("Role")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SelfiePath")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Telefon")
@@ -347,6 +453,7 @@ namespace KayAyiti.Migrations
                             Email = "admin@kayayiti.com",
                             EmailVerified = true,
                             IsActive = true,
+                            KycStatus = "None",
                             Nom = "Administrateur",
                             PasswordHash = "$2a$11$elBbDc4iVyVCok.WvfQCau2nq2ndD0kn0M67kgI962A0ojiGsTyki",
                             Role = "Admin",
@@ -450,6 +557,25 @@ namespace KayAyiti.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("KayAyiti.Models.Report", b =>
+                {
+                    b.HasOne("KayAyiti.Models.House", "House")
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KayAyiti.Models.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("House");
+
+                    b.Navigation("Reporter");
                 });
 
             modelBuilder.Entity("KayAyiti.Models.House", b =>

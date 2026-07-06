@@ -93,6 +93,23 @@
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
         Itilizatè yo
       </div>
+
+      <div class="sb-section">Konfyans &amp; Sekirite</div>
+      <div class="sb-item" onclick="showPage('page-kyc',this)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h3M15 12h3M6 17h12"/></svg>
+        Verifikasyon Idantite
+        <span class="sb-badge" id="badge-kyc">—</span>
+      </div>
+      <div class="sb-item" onclick="showPage('page-ownership',this)">
+        <svg viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-4z"/></svg>
+        Verifikasyon Pwopriyete
+        <span class="sb-badge" id="badge-ownership">—</span>
+      </div>
+      <div class="sb-item" onclick="showPage('page-reports',this)">
+        <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        Rapò
+        <span class="sb-badge" id="badge-reports">—</span>
+      </div>
     </div>
 
     <div class="sb-footer">
@@ -337,6 +354,120 @@
       </div>
     </div>
 
+    <!-- ══════ KYC (VERIFIKASYON IDANTITE) ══════ -->
+    <div class="page" id="page-kyc">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">Verifikasyon Idantite</div>
+          <div class="page-sub">Revize kat idantite / paspò ak selfie itilizatè yo</div>
+        </div>
+        <div class="topbar-right">
+          <select class="form-sel" onchange="onKycStatusFilter(this.value)" style="width:auto;">
+            <option value="Pending">Pandan</option>
+            <option value="">Tout statut</option>
+            <option value="Verified">Verifye</option>
+            <option value="Rejected">Rejte</option>
+          </select>
+        </div>
+      </div>
+      <div class="content" style="padding-top:16px;">
+        <div class="card">
+          <div class="filter-bar">
+            <span style="font-size:12px;color:var(--muted);" id="kyc-count-lbl">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Itilizatè</th><th>Telefòn</th><th>Dokiman</th>
+                  <th>Dat Soumèt</th><th>Statut</th><th>Aksyon</th>
+                </tr>
+              </thead>
+              <tbody id="kyc-tbody">
+                <tr><td colspan="6"><div class="loader"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ VERIFIKASYON PWOPRIYETE ══════ -->
+    <div class="page" id="page-ownership">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">Verifikasyon Pwopriyete</div>
+          <div class="page-sub">Revize tit pwopriyete, manda, ak resi taks kay yo</div>
+        </div>
+        <div class="topbar-right">
+          <select class="form-sel" onchange="onOwnershipStatusFilter(this.value)" style="width:auto;">
+            <option value="Pending">Pandan</option>
+            <option value="">Tout statut</option>
+            <option value="Verified">Verifye</option>
+            <option value="Rejected">Rejte</option>
+          </select>
+        </div>
+      </div>
+      <div class="content" style="padding-top:16px;">
+        <div class="card">
+          <div class="filter-bar">
+            <span style="font-size:12px;color:var(--muted);" id="ownership-count-lbl">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kay</th><th>Pwopriyetè</th><th>Dokiman</th><th>Adrès</th>
+                  <th>Dat Soumèt</th><th>Statut</th><th>Aksyon</th>
+                </tr>
+              </thead>
+              <tbody id="ownership-tbody">
+                <tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ RAPÒ ══════ -->
+    <div class="page" id="page-reports">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">Rapò sou Kay</div>
+          <div class="page-sub">Kay itilizatè yo siyale kòm sispèk</div>
+        </div>
+        <div class="topbar-right">
+          <select class="form-sel" onchange="onReportStatusFilter(this.value)" style="width:auto;">
+            <option value="Pending">Pandan</option>
+            <option value="">Tout statut</option>
+            <option value="Reviewed">Trete</option>
+            <option value="Dismissed">Anile</option>
+          </select>
+        </div>
+      </div>
+      <div class="content" style="padding-top:16px;">
+        <div class="card">
+          <div class="filter-bar">
+            <span style="font-size:12px;color:var(--muted);" id="reports-count-lbl">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rapòte pa</th><th>Kay</th><th>Rezon</th><th>Detay</th>
+                  <th>Dat</th><th>Statut</th><th>Aksyon</th>
+                </tr>
+              </thead>
+              <tbody id="reports-tbody">
+                <tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -381,8 +512,8 @@
 <script>
   // Set dat jounen an
   const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
-  const el = document.getElementById('dash-date');
-  if (el) el.textContent = new Date().toLocaleDateString('fr-HT', opts);
+  const dashDateEl = document.getElementById('dash-date');
+  if (dashDateEl) dashDateEl.textContent = new Date().toLocaleDateString('fr-HT', opts);
 </script>
 </body>
 </html>

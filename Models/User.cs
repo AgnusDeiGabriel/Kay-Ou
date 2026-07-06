@@ -28,6 +28,15 @@ public class User
 
     public string? AvatarUrl { get; set; }
 
+    // ─── Verifikasyon idantite (KYC) ("None" | "Pending" | "Verified" | "Rejected") ───
+    public string KycStatus { get; set; } = "None";
+    public string? KycRejectionReason { get; set; }
+    public DateTime? KycSubmittedAt { get; set; }
+    public DateTime? KycVerifiedAt { get; set; }
+    public int? KycVerifiedByAdminId { get; set; }
+    public string? IdDocumentPath { get; set; }
+    public string? SelfiePath { get; set; }
+
     public string? GoogleId { get; set; }
     public string? FacebookId { get; set; }
     public string? AppleId { get; set; }

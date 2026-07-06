@@ -22,6 +22,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IHouseService, HouseService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IKycService, KycService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // ─── JWT + OAuth Authentication ─────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]!;

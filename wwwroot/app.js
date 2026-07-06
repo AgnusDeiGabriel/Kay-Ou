@@ -1000,7 +1000,8 @@ async function loadProfileStats() {
     $('pf-stat-payments').textContent = user.paymentCount ?? 0;
     const yr = new Date(user.createdAt).getFullYear();
     $('pf-stat-since').textContent    = yr;
-    // Badge verifye (kache si pa verifye — pa gen champ nan DTO, montre pa defò)
+    // Badge verifye — montre sèlman si idantite itilizatè a verifye pa admin
+    $('pf-verified-badge').style.display = user.kycStatus === 'Verified' ? 'inline-flex' : 'none';
   } catch {}
 }
 
@@ -1064,7 +1065,8 @@ function renderHouses(list) {
             ? `<img src="${imgSrc}" alt="${h.titre}" loading="lazy">`
             : `<div class="card-img-placeholder">${h.type === 'Lwe' ? '🏢' : '🏡'}</div>`}
           <span class="card-badge badge-${h.type.toLowerCase()}">${h.type === 'Vann' ? 'Pou Vann' : 'Pou Lwe'}</span>
-          ${h.statut === 'Approved' ? '<span class="badge-verified">✓ Verifye</span>' : ''}
+          ${h.statut === 'Approved' ? '<span class="badge-verified">✓ Anonse Aprouve</span>' : ''}
+          ${(h.ownershipStatus === 'Verified' && h.owner?.kycStatus === 'Verified') ? '<span class="badge-trust">🛡️ Pwopriyetè Verifye</span>' : ''}
           <div class="card-overlay">
             <div class="card-title">${h.titre}</div>
             <div class="card-zone-price">
@@ -1187,6 +1189,8 @@ async function openDetail(id) {
     const initials = h.owner.nom.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
     $('det-owner-av').textContent   = initials;
     $('det-owner-name').textContent = h.owner.nom;
+    $('det-owner-trust').style.display =
+      (h.ownershipStatus === 'Verified' && h.owner?.kycStatus === 'Verified') ? 'inline-flex' : 'none';
 
     const badge = $('det-badge');
     badge.textContent   = h.type === 'Vann' ? 'Pou Vann' : 'Pou Lwe';
@@ -1262,7 +1266,22 @@ async function submitHouse() {
       await API.houses.uploadImages(houseId, State.selectedFiles);
     }
 
-    toast('Kay voye pou validasyon admin! ✓', 'ok');
+    // Soumèt dokiman pwopriyete si moun nan te ajoute yo (opsyonèl)
+    if (State.ownershipFiles.deed) {
+      try {
+        await API.ownership.submit(houseId, State.ownershipFiles, {
+          adresseComplete: $('add-own-adresse').value.trim() || null,
+          latitude: State.ownershipCoords.latitude,
+          longitude: State.ownershipCoords.longitude
+        });
+        toast('Kay voye pou validasyon, ak dokiman pwopriyete pou verifikasyon! ✓', 'ok');
+      } catch (e) {
+        toast('Kay la poste, men dokiman pwopriyete yo pa t voye: ' + e.message, 'info');
+      }
+    } else {
+      toast('Kay voye pou validasyon admin! ✓', 'ok');
+    }
+
     // Reset form
     $('add-titre').value = '';
     $('add-desc').value  = '';
@@ -1270,6 +1289,7 @@ async function submitHouse() {
     State.selectedFiles  = [];
     $('upload-zone').classList.remove('has-files');
     $('upload-txt').textContent = 'Pran foto oswa chwazi nan galri';
+    resetOwnershipAddFields();
     goTo('home');
     loadHouses();
   } catch (e) {
@@ -1385,6 +1405,8 @@ async function openMyHouses() {
         : `<div class="mh-img mh-img--placeholder">🏠</div>`;
       const statusClass = { Pending:'pending', Approved:'approved', Rejected:'rejected' }[h.statut] ?? 'pending';
       const statusLabel = { Pending:'⏳ Annatant', Approved:'✅ Apwouve', Rejected:'❌ Rejte' }[h.statut] ?? h.statut;
+      const ownStatusClass = { None:'none', Pending:'pending', Verified:'verified', Rejected:'rejected' }[h.ownershipStatus] ?? 'none';
+      const ownStatusLabel = { None:'🛡️ Pa verifye', Pending:'⏳ Pwopriyete annatant', Verified:'🛡️ Pwopriyete verifye', Rejected:'❌ Pwopriyete rejte' }[h.ownershipStatus] ?? h.ownershipStatus;
       return `
         <div class="mh-card" onclick="openDetail(${h.id})">
           ${img}
@@ -1396,6 +1418,11 @@ async function openMyHouses() {
             <div class="mh-zone">📍 ${h.zone}</div>
             <div class="mh-price">${h.prix.toLocaleString()} HTG${h.type === 'Lwe' ? ' / mwa' : ''}</div>
             ${h.statut === 'Rejected' && h.rejectionReason ? `<div class="mh-reason">⚠️ ${h.rejectionReason}</div>` : ''}
+            <div class="mh-ownership-row" onclick="event.stopPropagation()">
+              <span class="pill pill-${ownStatusClass}">${ownStatusLabel}</span>
+              ${h.ownershipStatus !== 'Verified' ? `<button class="mh-ownership-btn" onclick="openOwnershipModal(${h.id})">Verifye Pwopriyete</button>` : ''}
+            </div>
+            ${h.ownershipStatus === 'Rejected' && h.ownershipRejectionReason ? `<div class="mh-reason">⚠️ ${h.ownershipRejectionReason}</div>` : ''}
           </div>
         </div>`;
     }).join('');
@@ -1416,6 +1443,125 @@ function setLoading(btnId, on) {
 function openInfoModal()  { $('info-modal').classList.add('open'); }
 function closeInfoModal() { $('info-modal').classList.remove('open'); }
 
+// ── RAPÒTE KAY ──────────────────────────────────────────────────────────────
+
+State.selectedReportReason = null;
+
+function openReportModal() {
+  if (!API.isLoggedIn()) { showAuth(); return; }
+  if (!State.selectedHouse) return;
+  State.selectedReportReason = null;
+  document.querySelectorAll('.report-reason-opt').forEach(el => el.classList.remove('selected'));
+  $('report-details').value = '';
+  $('report-modal').classList.add('open');
+}
+function closeReportModal() { $('report-modal').classList.remove('open'); }
+
+function selectReportReason(el) {
+  document.querySelectorAll('.report-reason-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  State.selectedReportReason = el.dataset.reason;
+}
+
+async function submitReport() {
+  if (!State.selectedReportReason) { toast('Chwazi yon rezon.', 'err'); return; }
+  setLoading('report-submit-btn', true);
+  try {
+    const res = await API.reports.create({
+      houseId: State.selectedHouse.id,
+      reason: State.selectedReportReason,
+      details: $('report-details').value.trim() || null
+    });
+    toast(res.message || 'Rapò voye. Mèsi!', 'ok');
+    closeReportModal();
+  } catch (e) {
+    toast(e.message, 'err');
+  } finally {
+    setLoading('report-submit-btn', false);
+  }
+}
+
+// ── VERIFIKASYON PWOPRIYETE ─────────────────────────────────────────────────
+
+State.ownershipHouseId = null;
+State.ownershipFiles = { deed: null, mandate: null, taxReceipt: null };
+State.ownershipCoords = { latitude: null, longitude: null };
+
+// Itilize lè w ap ajoute yon nouvo kay — chan dokiman pwopriyete yo opsyonèl la
+function resetOwnershipAddFields() {
+  State.ownershipFiles = { deed: null, mandate: null, taxReceipt: null };
+  State.ownershipCoords = { latitude: null, longitude: null };
+  ['add-own-deed-zone','add-own-mandate-zone','add-own-tax-zone'].forEach(id => $(id).classList.remove('has-files'));
+  $('add-own-deed-txt').textContent = 'Chwazi yon foto oswa PDF';
+  $('add-own-mandate-txt').textContent = 'Opsyonèl';
+  $('add-own-tax-txt').textContent = 'Opsyonèl';
+  $('add-own-adresse').value = '';
+  $('add-own-gps-status').textContent = '';
+}
+
+function openAddHouseScreen() {
+  if (!API.isLoggedIn()) { showAuth(); return; }
+  resetOwnershipAddFields();
+  goTo('add');
+}
+
+function openOwnershipModal(houseId) {
+  State.ownershipHouseId = houseId;
+  State.ownershipFiles = { deed: null, mandate: null, taxReceipt: null };
+  State.ownershipCoords = { latitude: null, longitude: null };
+
+  ['own-deed-zone','own-mandate-zone','own-tax-zone'].forEach(id => $(id).classList.remove('has-files'));
+  $('own-deed-txt').textContent = 'Chwazi yon foto oswa PDF';
+  $('own-mandate-txt').textContent = 'Opsyonèl';
+  $('own-tax-txt').textContent = 'Opsyonèl';
+  $('own-adresse').value = '';
+  $('own-gps-status').textContent = '';
+
+  $('ownership-modal').classList.add('open');
+}
+function closeOwnershipModal() { $('ownership-modal').classList.remove('open'); }
+
+function onOwnershipFileChange(input, zoneId, txtId, key) {
+  const file = input.files[0];
+  if (!file) return;
+  State.ownershipFiles[key] = file;
+  $(zoneId).classList.add('has-files');
+  $(txtId).textContent = `${file.name} ✓`;
+}
+
+function captureOwnershipGps(statusElId = 'own-gps-status') {
+  if (!navigator.geolocation) { toast('Jewolokalizasyon pa disponib sou aparèy sa a.', 'err'); return; }
+  $(statusElId).textContent = 'Ap chèche pozisyon w...';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      State.ownershipCoords.latitude = pos.coords.latitude;
+      State.ownershipCoords.longitude = pos.coords.longitude;
+      $(statusElId).textContent = `Pozisyon jwenn ✓ (${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)})`;
+    },
+    err => { $(statusElId).textContent = ''; toast('Pa ka jwenn pozisyon: ' + err.message, 'err'); }
+  );
+}
+
+async function submitOwnership() {
+  if (!State.ownershipFiles.deed) { toast('Chwazi tit pwopriyete a oswa kontra vant lan.', 'err'); return; }
+
+  setLoading('own-submit-btn', true);
+  try {
+    const res = await API.ownership.submit(State.ownershipHouseId, State.ownershipFiles, {
+      adresseComplete: $('own-adresse').value.trim() || null,
+      latitude: State.ownershipCoords.latitude,
+      longitude: State.ownershipCoords.longitude
+    });
+    toast(res.message || 'Dokiman voye!', 'ok');
+    closeOwnershipModal();
+    openMyHouses();
+  } catch (e) {
+    toast(e.message, 'err');
+  } finally {
+    setLoading('own-submit-btn', false);
+  }
+}
+
 // ── IN-APP CALLING (SignalR + WebRTC) ────────────────────────
 
 const CallState = {
@@ -1432,7 +1578,31 @@ const CallState = {
   isCaller:      false,
 };
 
-const STUN = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const STUN = {
+  iceServers: [
+    // STUN — pou koneksyon dirèk (menm rezo / sèten NAT)
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    // TURN — relè obligatwa pou de rezo diferan (4G vs WiFi, etc.)
+    {
+      urls:       'turn:openrelay.metered.ca:80',
+      username:   'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    {
+      urls:       'turn:openrelay.metered.ca:443',
+      username:   'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    {
+      urls:       'turn:openrelay.metered.ca:443?transport=tcp',
+      username:   'openrelayproject',
+      credential: 'openrelayproject',
+    },
+  ],
+  iceCandidatePoolSize: 10,
+};
 
 // ── SignalR connection ────────────────────────────────────────
 
@@ -1598,7 +1768,14 @@ async function startWebRTC(isCaller) {
   }
 
   try {
-    CallState.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    CallState.localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl:  true,
+      },
+      video: false,
+    });
   } catch (e) {
     const msg = e?.name === 'NotAllowedError'  ? 'Pèmisyon mikwofòn refize. Al nan Paramèt › Sit › Mikwofòn epi otorize li.' :
                 e?.name === 'NotFoundError'     ? 'Pa gen mikwofòn detekte sou aparèy ou.' :
@@ -1726,21 +1903,21 @@ function toggleSpeaker() {
 }
 
 function toggleHold() {
-  const onHold    = $('ctrl-hold').classList.toggle('active');
-  const micMuted  = $('ctrl-mic').classList.contains('active');
+  const onHold   = $('ctrl-hold').classList.toggle('active');
+  const micMuted = $('ctrl-mic').classList.contains('active');
   $('ctrl-hold-lbl').textContent = onHold ? 'Reprann' : 'Attente';
 
-  // Sible sendè yo dirèkteman, respekte eta mic manyèl la
+  // 1. Koupe/reyaktive sa nou voye (sendè lokal yo)
   const senders = CallState.peerConn?.getSenders() ?? [];
   senders.forEach(s => {
     if (!s.track) return;
-    if (onHold) {
-      s.track.enabled = false;
-    } else {
-      // Pandan reprann: reyaktive sèlman si mic pa t muted manyèlman
-      s.track.enabled = s.track.kind === 'audio' ? !micMuted : true;
-    }
+    s.track.enabled = onHold ? false
+                    : s.track.kind === 'audio' ? !micMuted : true;
   });
+
+  // 2. Koupe/reyaktive son k ap vini (son lòt moun nan)
+  const remoteAudio = document.getElementById('call-remote-audio');
+  if (remoteAudio) remoteAudio.muted = onHold;
 }
 
 // ── Ringtone (Web Audio) ──────────────────────────────────────
@@ -1941,6 +2118,69 @@ async function changePassword() {
   }
 }
 
+// ── KYC (VERIFIKASYON IDANTITE) ────────────────────────────────────────────
+
+State.kycFiles = { idDocument: null, selfie: null };
+
+const KYC_BANNERS = {
+  Pending:  { cls: 'status-pending',  title: '⏳ Verifikasyon ap trete',
+              sub: 'Nou voye dokiman ou yo bay admin. Sa ka pran jiska 24-48è.' },
+  Verified: { cls: 'status-verified', title: '✓ Idantite ou verifye',
+              sub: 'Ou gen badge konfyans sou tout kay ou poste yo.' },
+  Rejected: { cls: 'status-rejected', title: '✕ Verifikasyon rejte',
+              sub: 'Ou ka soumèt ankò ak nouvo dokiman.' },
+};
+
+async function openKycScreen() {
+  goTo('kyc');
+  $('kyc-status-banner').style.display = 'none';
+  $('kyc-form-area').style.display = '';
+  try {
+    const res = await API.kyc.status();
+    const s = res.data;
+    const info = KYC_BANNERS[s.kycStatus];
+    if (info) {
+      const banner = $('kyc-status-banner');
+      banner.className = `kyc-status-banner ${info.cls}`;
+      banner.style.display = '';
+      const reasonHtml = s.kycStatus === 'Rejected' && s.kycRejectionReason
+        ? `<div class="ksb-sub" style="margin-top:6px;font-weight:600;">Rezon: ${s.kycRejectionReason}</div>` : '';
+      banner.innerHTML = `<div class="ksb-title">${info.title}</div><div class="ksb-sub">${info.sub}</div>${reasonHtml}`;
+    }
+    if (s.kycStatus === 'Verified') {
+      $('kyc-form-area').style.display = 'none';
+    }
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+}
+
+function onKycFileChange(input, zoneId, txtId) {
+  const file = input.files[0];
+  if (!file) return;
+  const key = zoneId === 'kyc-id-zone' ? 'idDocument' : 'selfie';
+  State.kycFiles[key] = file;
+  $(zoneId).classList.add('has-files');
+  $(txtId).textContent = `${file.name} ✓`;
+}
+
+async function submitKyc() {
+  if (!State.kycFiles.idDocument) { toast('Chwazi yon foto kat idantite/paspò.', 'err'); return; }
+  if (!State.kycFiles.selfie)     { toast('Chwazi yon selfie.', 'err'); return; }
+
+  setLoading('kyc-submit-btn', true);
+  try {
+    const res = await API.kyc.submit(State.kycFiles.idDocument, State.kycFiles.selfie);
+    toast(res.message || 'Dokiman voye!', 'ok');
+    State.kycFiles = { idDocument: null, selfie: null };
+    openKycScreen();
+  } catch (e) {
+    toast(e.message, 'err');
+  } finally {
+    setLoading('kyc-submit-btn', false);
+  }
+}
+
 // ── LIKE / SHARE ──────────────────────────────────────────────────────────────
 
 async function toggleLike(e, btn) {
@@ -2004,4 +2244,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fèmen menu kontèks lè klike nenpòt kote
   document.addEventListener('click', () => hideCtxMenu());
   document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCtxMenu(); });
+
+  // Louvri detay yon kay si nou vini soti nan kat la (map.html?house=ID)
+  const houseParam = new URLSearchParams(location.search).get('house');
+  if (houseParam) {
+    history.replaceState(null, '', location.pathname);
+    openDetail(parseInt(houseParam, 10));
+  }
 });

@@ -39,6 +39,24 @@ public class House
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ApprovedAt { get; set; }
 
+    // ─── Verifikasyon pwopriyete ("None" | "Pending" | "Verified" | "Rejected") ───
+    public string OwnershipStatus { get; set; } = "None";
+    public string? OwnershipRejectionReason { get; set; }
+    public DateTime? OwnershipSubmittedAt { get; set; }
+    public DateTime? OwnershipVerifiedAt { get; set; }
+    public int? OwnershipVerifiedByAdminId { get; set; }
+
+    public string? OwnershipTitleDeedPath { get; set; }
+    public string? OwnershipMandatePath { get; set; }
+    public string? OwnershipTaxReceiptPath { get; set; }
+
+    // Done revizyon admin sèlman — pa itilize pou kat piblik la (wwwroot/map.js)
+    public string? AdresseComplete { get; set; }
+    [Column(TypeName = "decimal(9,6)")]
+    public decimal? Latitude { get; set; }
+    [Column(TypeName = "decimal(9,6)")]
+    public decimal? Longitude { get; set; }
+
     // Foreign key
     public int UserId { get; set; }
     public User User { get; set; } = null!;

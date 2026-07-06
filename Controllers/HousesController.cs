@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using KayAyiti.Data;
 using KayAyiti.DTOs;
+using KayAyiti.Helpers;
 using KayAyiti.Services;
 using System.Security.Claims;
 
@@ -11,8 +13,15 @@ namespace KayAyiti.Controllers;
 public class HousesController : ControllerBase
 {
     private readonly IHouseService _houses;
+    private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment _env;
 
-    public HousesController(IHouseService houses) => _houses = houses;
+    public HousesController(IHouseService houses, AppDbContext db, IWebHostEnvironment env)
+    {
+        _houses = houses;
+        _db = db;
+        _env = env;
+    }
 
     private int? CurrentUserId =>
         int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id)
@@ -116,5 +125,59 @@ public class HousesController : ControllerBase
     {
         var result = await _houses.AdminActionAsync(id, req, CurrentUserId!.Value);
         return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    // ─── Verifikasyon pwopriyete ─────────────────────────────────────────────
+
+    /// <summary>Soumèt dokiman pwopriyete (tit, manda, resi taks) pou yon kay</summary>
+    [HttpPost("{id}/ownership-docs")]
+    [Authorize]
+    public async Task<IActionResult> SubmitOwnershipDocs(int id, IFormFile titleDeed,
+        IFormFile? mandate, IFormFile? taxReceipt,
+        [FromForm] string? adresseComplete, [FromForm] decimal? latitude, [FromForm] decimal? longitude)
+    {
+        var result = await _houses.SubmitOwnershipDocsAsync(
+            id, CurrentUserId!.Value, titleDeed, mandate, taxReceipt, adresseComplete, latitude, longitude);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>Admin: lis kay k ap tann verifikasyon pwopriyete</summary>
+    [HttpGet("admin/ownership-all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminOwnershipAll(
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? status = null)
+    {
+        var result = await _houses.GetOwnershipQueueAsync(page, pageSize, status);
+        return Ok(result);
+    }
+
+    /// <summary>Admin: verifye oswa rejte pwopriyete yon kay</summary>
+    [HttpPatch("{id}/ownership-review")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> OwnershipReview(int id, [FromBody] AdminOwnershipActionRequest req)
+    {
+        var result = await _houses.OwnershipAdminActionAsync(id, req, CurrentUserId!.Value);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>Admin: wè yon dokiman pwopriyete (prive) — docType: deed|mandate|tax-receipt</summary>
+    [HttpGet("admin/{id}/ownership-doc/{docType}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ViewOwnershipDoc(int id, string docType)
+    {
+        if (docType != "deed" && docType != "mandate" && docType != "tax-receipt")
+            return BadRequest(ApiResponse<bool>.Fail("Kalite dokiman pa valid."));
+
+        var house = await _db.Houses.FindAsync(id);
+        if (house is null) return NotFound(ApiResponse<bool>.Fail("Kay pa jwenn."));
+
+        var path = docType switch
+        {
+            "deed" => house.OwnershipTitleDeedPath,
+            "mandate" => house.OwnershipMandatePath,
+            _ => house.OwnershipTaxReceiptPath
+        };
+
+        return PrivateFileHelper.Serve(_env, "house-ownership", path);
     }
 }

@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<HouseLike> HouseLikes => Set<HouseLike>();
+    public DbSet<Report> Reports => Set<Report>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,6 +99,27 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<HouseLike>()
             .HasIndex(l => new { l.UserId, l.HouseId })
             .IsUnique();
+
+        // Report -> Reporter (no cascade to avoid multiple paths)
+        modelBuilder.Entity<Report>()
+            .HasOne(r => r.Reporter)
+            .WithMany()
+            .HasForeignKey(r => r.ReporterId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Report -> House (cascade when house deleted)
+        modelBuilder.Entity<Report>()
+            .HasOne(r => r.House)
+            .WithMany()
+            .HasForeignKey(r => r.HouseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Report>()
+            .HasIndex(r => new { r.HouseId, r.Status });
+
+        // Defo SQL obligatwa pou kolòn ki ajoute sou tab ki deja gen done
+        modelBuilder.Entity<User>().Property(u => u.KycStatus).HasDefaultValue("None");
+        modelBuilder.Entity<House>().Property(h => h.OwnershipStatus).HasDefaultValue("None");
 
         // Seed Admin user (password: Admin@123)
         modelBuilder.Entity<User>().HasData(new User

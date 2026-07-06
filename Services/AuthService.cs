@@ -230,6 +230,7 @@ public class AuthService : IAuthService
         Role      = u.Role,
         IsActive  = u.IsActive,
         CreatedAt = u.CreatedAt,
-        AvatarUrl = u.AvatarUrl
+        AvatarUrl = u.AvatarUrl,
+        KycStatus = u.KycStatus
     };
 }
