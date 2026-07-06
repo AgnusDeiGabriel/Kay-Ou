@@ -7,6 +7,7 @@
 <title>Kat Kay yo — KayOu</title>
 <link rel="stylesheet" href="app.css?v=21">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <style>
   html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg-feed); }
   #map { position: fixed; inset: 0; z-index: 0; background: #E8E4DC; }
@@ -159,6 +160,14 @@
     75% { margin-top: -6px; }
   }
   .pin-bounce { animation: pinBounce .6s ease; }
+
+  /* ── KLASTÈ (plizyè zòn tou pre yonn ak lòt) ───────────────── */
+  .map-cluster-icon {
+    background: var(--brown); color: #fff; border: 3px solid #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-md); font-family: 'DM Sans', sans-serif;
+    font-weight: 700; font-size: 13px;
+  }
 
   .leaflet-popup-content-wrapper { border-radius: 16px; padding: 0; overflow: hidden; }
   .leaflet-popup-content { margin: 0; width: 260px !important; }
@@ -331,6 +340,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="api.js"></script>
 <script src="map.js"></script>
 </body>

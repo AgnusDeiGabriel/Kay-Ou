@@ -344,12 +344,12 @@ C:\Users\AgnusDeiGabriel\Kay-Ou\bin\Debug\net10.0\runtimes\win\lib\net7.0\System
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\hlxosogbtp-{0}-tcuu39i5b7-tcuu39i5b7.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\cqqk8i3dce-{0}-usnk7meps1-usnk7meps1.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\gfckmi1973-{0}-d4sdtjfo6s-d4sdtjfo6s.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\ays1gonpop-{0}-madpfi43vs-madpfi43vs.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\wv36ioyhfo-{0}-wu63gkavix-wu63gkavix.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\g24apfop1e-{0}-5jxes4g0d6-5jxes4g0d6.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\frfrv30u7a-{0}-26kr9a7uwo-26kr9a7uwo.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-lgv0r3134i-lgv0r3134i.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\zmlnsuj932-{0}-2n2infz109-2n2infz109.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\56bex7oijr-{0}-a41cx7j6mr-a41cx7j6mr.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-g4ev32pyrw-g4ev32pyrw.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-ibf61iy90k-ibf61iy90k.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-37g087qczy-37g087qczy.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\ays1gonpop-{0}-iini7sfny0-iini7sfny0.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\wv36ioyhfo-{0}-c78rywx8i7-c78rywx8i7.gz

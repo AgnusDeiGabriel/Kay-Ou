@@ -88,7 +88,7 @@ for (const [name, coords] of Object.entries(HAITI_ZONES)) {
 function $(id) { return document.getElementById(id); }
 
 // ── State ────────────────────────────────────────────────────────────────
-let map, allHouses = [], markers = [];
+let map, clusterGroup, allHouses = [], markers = [];
 let curType = '', curZoneQuery = '', curPrixMin = null, curPrixMax = null, curChambreMin = null;
 
 // Limit teritwa a — kwen sid-wès/nò-ès Ayiti (san Kiba, Jamayik, Repiblik Dominikèn)
@@ -208,7 +208,7 @@ function buildPopupHtml(zoneName, houses) {
 }
 
 function drawMarkers() {
-  markers.forEach(m => map.removeLayer(m.marker));
+  clusterGroup.clearLayers();
   markers = [];
 
   const filtered = filteredHouses();
@@ -221,8 +221,9 @@ function drawMarkers() {
   for (const zoneKey of zoneNames) {
     const { coords, displayName, houses } = groups[zoneKey];
     const marker = L.marker(coords, { icon: buildPinIcon(houses) })
-      .addTo(map)
       .bindPopup(buildPopupHtml(displayName, houses));
+    marker.houseCount = houses.length;
+    clusterGroup.addLayer(marker);
     markers.push({ marker, zoneName: displayName, houses });
   }
 
@@ -251,15 +252,17 @@ function focusHouseOnMap(houseId) {
   if (!entry) return;
 
   $('sheet').classList.remove('expanded');
-  map.flyTo(entry.marker.getLatLng(), Math.max(map.getZoom(), 13), { duration: 0.6 });
-  entry.marker.openPopup();
-  bounceMarker(entry.marker);
 
-  setTimeout(() => {
-    document.querySelectorAll('.zone-pop-item').forEach(el => el.classList.remove('zone-pop-item--active'));
-    const el = document.querySelector(`.zone-pop-item[data-house-id="${houseId}"]`);
-    if (el) { el.classList.add('zone-pop-item--active'); el.scrollIntoView({ block: 'nearest' }); }
-  }, 350);
+  clusterGroup.zoomToShowLayer(entry.marker, () => {
+    entry.marker.openPopup();
+    bounceMarker(entry.marker);
+
+    setTimeout(() => {
+      document.querySelectorAll('.zone-pop-item').forEach(el => el.classList.remove('zone-pop-item--active'));
+      const el = document.querySelector(`.zone-pop-item[data-house-id="${houseId}"]`);
+      if (el) { el.classList.add('zone-pop-item--active'); el.scrollIntoView({ block: 'nearest' }); }
+    }, 350);
+  });
 }
 
 // ── Bottom sheet (lis kay ki nan vizyon w) ──────────────────────────────
@@ -445,6 +448,24 @@ async function initMap() {
     minZoom: map.getMinZoom(),
     bounds: HAITI_BOUNDS
   }).addTo(map);
+
+  // Gwoupe pen ki tou pre yonn ak lòt (evite tit yo monte sou lòt lè zòn yo kole)
+  clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 90,
+    disableClusteringAtZoom: 15,
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true,
+    iconCreateFunction(cluster) {
+      const total = cluster.getAllChildMarkers().reduce((sum, m) => sum + (m.houseCount || 1), 0);
+      const size = Math.min(34 + Math.round(Math.sqrt(total) * 6), 60);
+      return L.divIcon({
+        html: `<div class="map-cluster-icon" style="width:${size}px;height:${size}px;"><span>${total}</span></div>`,
+        className: '',
+        iconSize: [size, size]
+      });
+    }
+  });
+  map.addLayer(clusterGroup);
 
   map.on('moveend zoomend', updateSheetList);
 
