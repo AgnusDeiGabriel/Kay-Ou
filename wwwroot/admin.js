@@ -506,7 +506,7 @@ async function viewPrivateDoc(path) {
 
 // ─── VERIFIKASYON IDANTITE (KYC) ────────────────────────────────────────────
 
-let kycFilters = { status: 'Pending', page: 1, pageSize: 20 };
+let kycFilters = { status: '', page: 1, pageSize: 20 };
 
 async function loadKyc() {
   const tbody = $('kyc-tbody');
@@ -572,7 +572,7 @@ function onKycStatusFilter(val) { kycFilters.status = val; kycFilters.page = 1; 
 
 // ─── VERIFIKASYON PWOPRIYETE ─────────────────────────────────────────────────
 
-let ownershipFilters = { status: 'Pending', page: 1, pageSize: 20 };
+let ownershipFilters = { status: '', page: 1, pageSize: 20 };
 
 async function loadOwnership() {
   const tbody = $('ownership-tbody');
@@ -640,7 +640,7 @@ function onOwnershipStatusFilter(val) { ownershipFilters.status = val; ownership
 
 // ─── RAPÒ ────────────────────────────────────────────────────────────────────
 
-let reportFilters = { status: 'Pending', page: 1, pageSize: 20 };
+let reportFilters = { status: '', page: 1, pageSize: 20 };
 
 async function loadReports() {
   const tbody = $('reports-tbody');

@@ -1036,6 +1036,24 @@ async function loadHouses(reset = true) {
   }
 }
 
+// Nivo pèfòmans yon kay, selon estatistik li (kantite "like" pou kounye a).
+// Retounen 0-5 (0 = pa gen ase done pou montre yon nivo).
+function performanceLevel(h) {
+  const likes = h.likeCount || 0;
+  if (likes >= 20) return 5;
+  if (likes >= 10) return 4;
+  if (likes >= 6)  return 3;
+  if (likes >= 3)  return 2;
+  if (likes >= 1)  return 1;
+  return 0;
+}
+
+function performanceBadgeHtml(h) {
+  const level = performanceLevel(h);
+  if (level === 0) return '';
+  return `<span class="badge-performance">${'⭐'.repeat(level)}</span>`;
+}
+
 function renderHouses(list) {
   if (!list.length) {
     $('listings-container').innerHTML = `
@@ -1065,7 +1083,7 @@ function renderHouses(list) {
             ? `<img src="${imgSrc}" alt="${h.titre}" loading="lazy">`
             : `<div class="card-img-placeholder">${h.type === 'Lwe' ? '🏢' : '🏡'}</div>`}
           <span class="card-badge badge-${h.type.toLowerCase()}">${h.type === 'Vann' ? 'Pou Vann' : 'Pou Lwe'}</span>
-          ${h.statut === 'Approved' ? '<span class="badge-verified">✓ Anonse Aprouve</span>' : ''}
+          ${performanceBadgeHtml(h)}
           ${(h.ownershipStatus === 'Verified' && h.owner?.kycStatus === 'Verified') ? '<span class="badge-trust">🛡️ Pwopriyetè Verifye</span>' : ''}
           <div class="card-overlay">
             <div class="card-title">${h.titre}</div>

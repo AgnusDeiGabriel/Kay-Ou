@@ -347,9 +347,9 @@ C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\gfckmi1973-{0}-d4sd
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\ays1gonpop-{0}-madpfi43vs-madpfi43vs.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\wv36ioyhfo-{0}-wu63gkavix-wu63gkavix.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\g24apfop1e-{0}-5jxes4g0d6-5jxes4g0d6.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\56bex7oijr-{0}-xvvxhv4t5m-xvvxhv4t5m.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\zmlnsuj932-{0}-dvi623feh5-dvi623feh5.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\frfrv30u7a-{0}-26kr9a7uwo-26kr9a7uwo.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-swr5oevpzs-swr5oevpzs.gz
-C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-w4hfnsb9z5-w4hfnsb9z5.gz
 C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\8r5gvhywmr-{0}-lgv0r3134i-lgv0r3134i.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\zmlnsuj932-{0}-2n2infz109-2n2infz109.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\56bex7oijr-{0}-a41cx7j6mr-a41cx7j6mr.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\j42952yc2r-{0}-g4ev32pyrw-g4ev32pyrw.gz
+C:\Users\AgnusDeiGabriel\Kay-Ou\obj\Debug\net10.0\compressed\mev6nx1nkr-{0}-0tsp46bksd-0tsp46bksd.gz
