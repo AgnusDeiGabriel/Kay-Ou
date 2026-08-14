@@ -53,6 +53,14 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: kayayiti-tunnel
+    command: tunnel --protocol http2 --url http://api:80
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   sqlserver-data:
     driver: local
