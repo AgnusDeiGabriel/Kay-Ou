@@ -1,0 +1,18 @@
+{
+  "name": "kayou-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android wrapper (Capacitor) pou KayOu PWA a",
+  "scripts": {
+    "add:android": "cap add android",
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

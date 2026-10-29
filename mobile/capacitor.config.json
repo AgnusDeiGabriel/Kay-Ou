@@ -1,0 +1,12 @@
+{
+  "appId": "com.kayou.app",
+  "appName": "KayOu",
+  "webDir": "www",
+  "server": {
+    "url": "https://REMPLASE-AK-DOMEN-OU.com",
+    "cleartext": false
+  },
+  "android": {
+    "backgroundColor": "#2C1810"
+  }
+}
