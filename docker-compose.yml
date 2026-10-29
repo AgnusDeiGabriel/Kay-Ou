@@ -53,10 +53,16 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
+  # ── Tunèl ngrok (domèn statik, URL la pa chanje) ──────────
+  # NGROK_AUTHTOKEN ak NGROK_DOMAIN soti nan fichye .env la
+  ngrok:
+    image: ngrok/ngrok:latest
     container_name: kayayiti-tunnel
-    command: tunnel --protocol http2 --url http://api:80
+    command: http --url=${NGROK_DOMAIN:?Mete NGROK_DOMAIN nan .env} api:80
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Mete NGROK_AUTHTOKEN nan .env}
+    ports:
+      - "4040:4040"   # paj enspeksyon ngrok: http://localhost:4040
     depends_on:
       - api
     restart: unless-stopped

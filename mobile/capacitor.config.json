@@ -7,6 +7,7 @@
     "cleartext": false
   },
   "android": {
-    "backgroundColor": "#2C1810"
+    "backgroundColor": "#2C1810",
+    "overrideUserAgent": "KayOuAndroid/1.0"
   }
 }
